@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Gallery Widget Test - Position Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 3rem 2rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: #f8f9ff;
+            padding: 2rem;
+            border-radius: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .feature-card ul {
+            list-style: none;
+        }
+
+        .feature-card li {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .feature-card li::before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .new-feature {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border-left: 4px solid #fff;
+        }
+
+        .new-feature h3 {
+            color: white;
+        }
+
+        .new-feature li::before {
+            color: #fff;
+        }
+
+        .widget-demo {
+            margin: 3rem 0;
+            text-align: center;
+        }
+
+        .widget-demo h2 {
+            margin-bottom: 2rem;
+            color: #333;
+            font-size: 2rem;
+        }
+
+        .widget-container {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+
+        .widget-iframe {
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 0 auto;
+            display: block;
+        }
+
+        .widget-sizes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .size-demo {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .size-demo h4 {
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .size-demo iframe {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .embed-code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+            overflow-x: auto;
+        }
+
+        .embed-code pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .position-examples {
+            background: #e8f5e8;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .position-examples h3 {
+            color: #28a745;
+            margin-bottom: 1rem;
+        }
+
+        .position-example {
+            background: white;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border-left: 3px solid #28a745;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 0.5rem 0;
+        }
+
+        .management-features {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+
+        .management-features h3 {
+            color: #8b4513;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 2rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 2rem 1rem;
+            }
+
+            .widget-iframe {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Image Gallery Widget</h1>
+            <p>Now with Dynamic Position Management</p>
+        </div>
+
+        <div class="content">
+            <div class="features">
+                <div class="feature-card">
+                    <h3>Core Features</h3>
+                    <ul>
+                        <li>Responsive sliding gallery</li>
+                        <li>Touch/swipe navigation</li>
+                        <li>Smooth animations</li>
+                        <li>High-quality images</li>
+                        <li>Easy iframe embedding</li>
+                        <li>Real-time updates</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>Customization</h3>
+                    <ul>
+                        <li>Add custom images via URLs</li>
+                        <li>Edit titles and descriptions</li>
+                        <li>Delete unwanted items</li>
+                        <li>Image validation system</li>
+                        <li>Live preview updates</li>
+                        <li>Database storage</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card new-feature">
+                    <h3>🆕 Position Management</h3>
+                    <ul>
+                        <li>Set exact display order (1, 2, 3...)</li>
+                        <li>Quick ↑↓ reordering buttons</li>
+                        <li>Automatic conflict resolution</li>
+                        <li>Smart gap handling</li>
+                        <li>Visual position indicators</li>
+                        <li>Instant preview updates</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="position-examples">
+                <h3>🎯 How Position Management Works</h3>
+                
+                <div class="position-example">
+                    <h4>Adding Items at Specific Positions</h4>
+                    <div class="code-block">Current: [1: Party, 2: Bridal, 3: Urban]</div>
+                    <div class="code-block">Add "Evening Glam" at position 2:</div>
+                    <div class="code-block">Result: [1: Party, 2: Evening Glam, 3: Bridal, 4: Urban]</div>
+                    <p><small>Other items automatically shift to make room!</small></p>
+                </div>
+
+                <div class="position-example">
+                    <h4>Quick Reordering with ↑↓ Buttons</h4>
+                    <div class="code-block">Current: [1: Party, 2: Bridal, 3: Urban]</div>
+                    <div class="code-block">Click ↓ on "Bridal":</div>
+                    <div class="code-block">Result: [1: Party, 2: Urban, 3: Bridal]</div>
+                    <p><small>One-click position adjustments!</small></p>
+                </div>
+
+                <div class="position-example">
+                    <h4>Editing Positions Directly</h4>
+                    <div class="code-block">Current: [1: Party, 2: Bridal, 3: Urban]</div>
+                    <div class="code-block">Edit "Urban" position to 1:</div>
+                    <div class="code-block">Result: [1: Urban, 2: Party, 3: Bridal]</div>
+                    <p><small>System handles all the reordering automatically!</small></p>
+                </div>
+            </div>
+
+            <div class="widget-demo">
+                <h2>Live Widget Demo</h2>
+                <p>This is the actual Image Gallery Widget in action. Try navigating through the slides!</p>
+                
+                <div class="widget-container">
+                    <iframe 
+                        src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                        class="widget-iframe"
+                        title="Image Gallery Widget Demo">
+                    </iframe>
+                </div>
+                
+                <p><strong>Note:</strong> This widget shows the default gallery items. 
+                When you customize it, your images will be displayed in the positions you set!</p>
+            </div>
+
+            <div class="management-features">
+                <h3>🛠️ Management Interface Features</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <div>
+                        <h4>Add New Images</h4>
+                        <ul style="list-style: none; margin-top: 0.5rem;">
+                            <li>✓ Custom titles and descriptions</li>
+                            <li>✓ Image URL validation</li>
+                            <li>✓ Category selection</li>
+                            <li>✓ Position number input</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Edit Existing Items</h4>
+                        <ul style="list-style: none; margin-top: 0.5rem;">
+                            <li>✓ Change any field</li>
+                            <li>✓ Update positions</li>
+                            <li>✓ Real-time validation</li>
+                            <li>✓ Instant preview updates</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Position Controls</h4>
+                        <ul style="list-style: none; margin-top: 0.5rem;">
+                            <li>✓ ↑↓ Quick reorder buttons</li>
+                            <li>✓ Direct position editing</li>
+                            <li>✓ Visual position badges</li>
+                            <li>✓ Automatic conflict resolution</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="widget-sizes">
+                <div class="size-demo">
+                    <h4>Small Widget (400x250)</h4>
+                    <iframe 
+                        src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                        width="400" 
+                        height="250"
+                        title="Small Gallery Widget">
+                    </iframe>
+                    <p><small>Perfect for sidebars</small></p>
+                </div>
+
+                <div class="size-demo">
+                    <h4>Medium Widget (600x400)</h4>
+                    <iframe 
+                        src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                        width="600" 
+                        height="400"
+                        title="Medium Gallery Widget">
+                    </iframe>
+                    <p><small>Default recommended size</small></p>
+                </div>
+
+                <div class="size-demo">
+                    <h4>Large Widget (800x500)</h4>
+                    <iframe 
+                        src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                        width="800" 
+                        height="500"
+                        title="Large Gallery Widget">
+                    </iframe>
+                    <p><small>Great for hero sections</small></p>
+                </div>
+            </div>
+
+            <h2>How to Get Started</h2>
+            <div style="text-align: center; margin: 2rem 0;">
+                <a href="http://localhost:3000/widgets" class="btn">
+                    📋 Go to Widgets Dashboard
+                </a>
+                <a href="http://localhost:3000/widgets/manage/7972577372/image-gallery" class="btn btn-success">
+                    🛠️ Manage Image Gallery
+                </a>
+            </div>
+
+            <h3>Embed Code</h3>
+            <p>Copy this code to add the widget to your website:</p>
+            
+            <div class="embed-code">
+                <pre>&lt;iframe 
+  src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/image-gallery" 
+  width="600" 
+  height="400" 
+  frameborder="0"
+  style="border: none; border-radius: 12px;"&gt;
+&lt;/iframe&gt;</pre>
+            </div>
+
+            <p><strong>Remember:</strong> Replace <code>YOUR_MOBILE_NUMBER</code> with your actual mobile number!</p>
+
+            <div style="background: #e3f2fd; padding: 2rem; border-radius: 10px; margin: 2rem 0;">
+                <h3 style="color: #1976d2; margin-bottom: 1rem;">🎉 New in Version 2.1: Position Management</h3>
+                <ul style="list-style: none;">
+                    <li>🆕 <strong>Dynamic Positioning:</strong> Set exact display order with numbers</li>
+                    <li>🆕 <strong>Quick Reordering:</strong> ↑↓ buttons for instant adjustments</li>
+                    <li>🆕 <strong>Smart Conflict Resolution:</strong> Automatic position management</li>
+                    <li>🆕 <strong>Visual Indicators:</strong> Clear position badges in management</li>
+                    <li>🆕 <strong>Real-time Updates:</strong> Position changes appear instantly</li>
+                    <li>🆕 <strong>Gap Handling:</strong> System fills gaps when items are deleted</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; background: #f8f9fa; padding: 2rem; border-radius: 10px; margin: 2rem 0;">
+                <h3>Perfect for Any Business</h3>
+                <p>Beauty salons, hair studios, fashion boutiques, photographers, artists, restaurants, and more!</p>
+                <p><strong>Now with precise control over your image display order.</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            // Highlight new features
+            const newFeatures = document.querySelectorAll('.new-feature');
+            newFeatures.forEach(feature => {
+                feature.style.animation = 'pulse 2s infinite';
+            });
+
+            // Add smooth scrolling for buttons
+            document.querySelectorAll('a[href^="http"]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Open management links in new tab
+                    if (this.href.includes('/manage/') || this.href.includes('/widgets')) {
+                        this.target = '_blank';
+                    }
+                });
+            });
+        });
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html> 

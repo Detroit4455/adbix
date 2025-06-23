@@ -1,0 +1,8 @@
+Place your test images here:
+- logo.png
+- image1.jpg  
+- image2.jpg
+- image3.jpg
+- banner.jpg
+
+These images will be used to test the image replacement functionality. 

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Gallery Widget - Multiple Views Showcase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 3rem 2rem;
+        }
+
+        .new-feature-banner {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .new-feature-banner h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .view-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 3rem;
+            margin: 3rem 0;
+        }
+
+        .view-demo {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .view-demo h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .view-demo p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .widget-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .widget-iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            display: block;
+        }
+
+        .view-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .feature-card {
+            background: #f8f9ff;
+            padding: 2rem;
+            border-radius: 15px;
+            border-left: 4px solid #667eea;
+            text-align: center;
+        }
+
+        .feature-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h4 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .feature-card ul {
+            list-style: none;
+            text-align: left;
+        }
+
+        .feature-card li {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .feature-card li::before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .management-section {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 3rem;
+            border-radius: 15px;
+            margin: 3rem 0;
+            text-align: center;
+        }
+
+        .management-section h3 {
+            color: #8b4513;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+
+        .management-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .management-feature {
+            background: rgba(255,255,255,0.9);
+            padding: 2rem;
+            border-radius: 10px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .code-example {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+            overflow-x: auto;
+        }
+
+        .code-example pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .best-practices {
+            background: #e8f5e8;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .best-practices h4 {
+            color: #28a745;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 2rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 2rem 1rem;
+            }
+
+            .view-showcase {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .widget-iframe {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Image Gallery Widget</h1>
+            <p>Multiple View Styles - Choose Your Perfect Layout</p>
+        </div>
+
+        <div class="content">
+            <div class="new-feature-banner">
+                <h2>🆕 NEW: Multiple View Options!</h2>
+                <p>Choose from 5 different gallery layouts to match your website's style perfectly. Each view offers unique advantages for different use cases.</p>
+            </div>
+
+            <h2 style="text-align: center; margin-bottom: 2rem; color: #333;">🖼️ Live View Demonstrations</h2>
+
+            <div class="view-showcase">
+                <div class="view-demo">
+                    <h3>🎭 Slideshow View</h3>
+                    <p>Classic sliding gallery with smooth transitions and navigation controls</p>
+                    <div class="widget-container">
+                        <iframe 
+                            src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                            class="widget-iframe"
+                            title="Slideshow Gallery Widget">
+                        </iframe>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
+                        ✨ Default view with arrows, dots, and smooth animations
+                    </div>
+                </div>
+
+                <div class="view-demo">
+                    <h3>📱 Grid Layout</h3>
+                    <p>Horizontal scrolling grid - 4 images per row on desktop, 1 on mobile with navigation</p>
+                    <div class="widget-container">
+                        <!-- This would show grid view when user selects it -->
+                        <iframe 
+                            src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                            class="widget-iframe"
+                            title="Grid Gallery Widget">
+                        </iframe>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
+                        📋 Horizontal scroll with ← → navigation arrows
+                    </div>
+                </div>
+
+                <div class="view-demo">
+                    <h3>🧱 Masonry View</h3>
+                    <p>Pinterest-style layout with varied heights for dynamic displays</p>
+                    <div class="widget-container">
+                        <iframe 
+                            src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                            class="widget-iframe"
+                            title="Masonry Gallery Widget">
+                        </iframe>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
+                        🎨 Creative layout with varied image sizes
+                    </div>
+                </div>
+
+                <div class="view-demo">
+                    <h3>🎠 Carousel View</h3>
+                    <p>Large main image with thumbnail strip for easy browsing</p>
+                    <div class="widget-container">
+                        <iframe 
+                            src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                            class="widget-iframe"
+                            title="Carousel Gallery Widget">
+                        </iframe>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
+                        🖼️ Main focus image with thumbnail navigation
+                    </div>
+                </div>
+
+                <div class="view-demo">
+                    <h3>🖼️ Fullscreen View</h3>
+                    <p>Immersive full-size display for maximum visual impact</p>
+                    <div class="widget-container">
+                        <iframe 
+                            src="http://localhost:3000/widget-preview/7972577372/image-gallery" 
+                            class="widget-iframe"
+                            title="Fullscreen Gallery Widget">
+                        </iframe>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center; color: #666; font-size: 0.9rem;">
+                        🌟 Maximum visual impact with full-size images
+                    </div>
+                </div>
+            </div>
+
+            <h2 style="text-align: center; margin: 3rem 0 2rem 0; color: #333;">⚡ View Comparison</h2>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>View Type</th>
+                        <th>Best For</th>
+                        <th>Key Features</th>
+                        <th>Mobile Friendly</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>🎭 Slideshow</strong></td>
+                        <td>General purpose, hero sections</td>
+                        <td>Arrows, dots, auto-advance</td>
+                        <td>✅ Excellent</td>
+                    </tr>
+                    <tr>
+                        <td><strong>📱 Grid Layout</strong></td>
+                        <td>Portfolios, product showcases</td>
+                        <td>Horizontal scroll, 4 per row, navigation</td>
+                        <td>✅ Responsive</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🧱 Masonry</strong></td>
+                        <td>Creative displays, blogs</td>
+                        <td>Varied heights, Pinterest-style</td>
+                        <td>✅ Adaptive</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🎠 Carousel</strong></td>
+                        <td>Product showcases, previews</td>
+                        <td>Main image + thumbnails</td>
+                        <td>✅ Touch-friendly</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🖼️ Fullscreen</strong></td>
+                        <td>Photography, art galleries</td>
+                        <td>Maximum visual impact</td>
+                        <td>✅ Immersive</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="view-features">
+                <div class="feature-card">
+                    <div class="icon">🎭</div>
+                    <h4>Slideshow View</h4>
+                    <ul>
+                        <li>Classic slide transitions</li>
+                        <li>Arrow navigation</li>
+                        <li>Dot indicators</li>
+                        <li>Auto-play option</li>
+                        <li>Touch/swipe support</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">📱</div>
+                    <h4>Grid Layout</h4>
+                    <ul>
+                        <li>Horizontal scrolling layout</li>
+                        <li>4 images per row (desktop)</li>
+                        <li>1 image per row (mobile)</li>
+                        <li>Left/right navigation arrows</li>
+                        <li>Dot indicators for slides</li>
+                        <li>Smooth scroll transitions</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🧱</div>
+                    <h4>Masonry View</h4>
+                    <ul>
+                        <li>Dynamic height layout</li>
+                        <li>Pinterest-style flow</li>
+                        <li>Optimized spacing</li>
+                        <li>Creative arrangement</li>
+                        <li>Visual variety</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🎠</div>
+                    <h4>Carousel View</h4>
+                    <ul>
+                        <li>Large main display</li>
+                        <li>Thumbnail strip</li>
+                        <li>Quick navigation</li>
+                        <li>Focus on details</li>
+                        <li>Preview mode</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🖼️</div>
+                    <h4>Fullscreen View</h4>
+                    <ul>
+                        <li>Maximum image size</li>
+                        <li>Minimal distractions</li>
+                        <li>Immersive experience</li>
+                        <li>Professional display</li>
+                        <li>Clean interface</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="management-section">
+                <h3>🛠️ Easy View Management</h3>
+                <p style="color: #8b4513; font-size: 1.1rem;">Switch between view styles instantly in the management interface</p>
+
+                <div class="management-features">
+                    <div class="management-feature">
+                        <h4>📋 Simple Selection</h4>
+                        <p>Click any view option to switch instantly. Changes appear immediately in your embedded widget.</p>
+                    </div>
+                    <div class="management-feature">
+                        <h4>⚡ Real-time Updates</h4>
+                        <p>No need to re-embed code. View changes are applied automatically to all your widgets.</p>
+                    </div>
+                    <div class="management-feature">
+                        <h4>🎨 Visual Previews</h4>
+                        <p>See exactly how each view looks with your images before making your choice.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="best-practices">
+                <h4>🎯 Choosing the Right View</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <div>
+                        <strong>For Businesses:</strong>
+                        <ul style="margin-top: 0.5rem;">
+                            <li>Slideshow: Service highlights</li>
+                            <li>Grid: Service portfolio</li>
+                            <li>Carousel: Before/after</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>For Creatives:</strong>
+                        <ul style="margin-top: 0.5rem;">
+                            <li>Masonry: Art galleries</li>
+                            <li>Fullscreen: Photography</li>
+                            <li>Grid: Project showcase</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>For E-commerce:</strong>
+                        <ul style="margin-top: 0.5rem;">
+                            <li>Grid: Product catalogs</li>
+                            <li>Carousel: Product details</li>
+                            <li>Slideshow: Featured items</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h3>🚀 Getting Started</h3>
+            <div style="text-align: center; margin: 2rem 0;">
+                <a href="http://localhost:3000/widgets" class="btn">
+                    📋 Go to Widgets Dashboard
+                </a>
+                <a href="http://localhost:3000/widgets/manage/7972577372/image-gallery" class="btn btn-success">
+                    🛠️ Manage Image Gallery
+                </a>
+            </div>
+
+            <h3>💻 Embed Code</h3>
+            <p>The same embed code works for all views. Just change the view in your management interface!</p>
+            
+            <div class="code-example">
+                <pre>&lt;iframe 
+  src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/image-gallery" 
+  width="600" 
+  height="400" 
+  frameborder="0"
+  style="border: none; border-radius: 12px;"&gt;
+&lt;/iframe&gt;</pre>
+            </div>
+
+            <div style="background: #e3f2fd; padding: 2rem; border-radius: 10px; margin: 2rem 0;">
+                <h3 style="color: #1976d2; margin-bottom: 1rem;">🎉 Version 3.0: Multiple Views Feature</h3>
+                <ul style="list-style: none;">
+                    <li>🆕 <strong>5 Unique View Styles:</strong> Choose the perfect layout for your content</li>
+                    <li>🆕 <strong>One-Click Switching:</strong> Change views instantly without re-embedding</li>
+                    <li>🆕 <strong>Responsive Design:</strong> All views work perfectly on mobile and desktop</li>
+                    <li>🆕 <strong>Smart Layout Engine:</strong> Each view optimizes for its specific purpose</li>
+                    <li>🆕 <strong>Backward Compatible:</strong> Existing widgets automatically get new features</li>
+                    <li>🆕 <strong>Real-time Preview:</strong> See changes immediately in management interface</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; background: #f8f9fa; padding: 2rem; border-radius: 10px; margin: 2rem 0;">
+                <h3>🌟 Perfect for Every Business</h3>
+                <p>Beauty salons, photographers, restaurants, e-commerce stores, artists, and more!</p>
+                <p><strong>Now with 5 professional view options to match your brand perfectly.</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add smooth scrolling for buttons
+            document.querySelectorAll('a[href^="http"]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.href.includes('/manage/') || this.href.includes('/widgets')) {
+                        this.target = '_blank';
+                    }
+                });
+            });
+
+            // Add animation to feature cards
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.feature-card, .view-demo').forEach(card => {
+                observer.observe(card);
+            });
+        });
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .feature-card, .view-demo {
+                opacity: 0;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html> 

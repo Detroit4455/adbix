@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .widget-demo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .widget-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .widget-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .embed-code {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+        }
+        .instructions {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .instructions h2 {
+            color: #0056b3;
+            margin-top: 0;
+        }
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        @media (max-width: 768px) {
+            .widget-demo {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Contact Us Widget Demo</h1>
+            <p>Test implementation of the customizable Contact Us widget</p>
+        </div>
+
+        <div class="note">
+            <strong>⚠️ Important:</strong> Replace <code>YOUR_MOBILE_NUMBER</code> in the iframe src with your actual mobile number from the system to test the widget properly.
+        </div>
+
+        <div class="instructions">
+            <h2>📋 How to Use the Contact Us Widget</h2>
+            <ol>
+                <li><strong>Login to your account</strong> and navigate to the Widgets section</li>
+                <li><strong>Find the Contact Us widget</strong> and click "Manage Widget"</li>
+                <li><strong>Customize your form:</strong>
+                    <ul>
+                        <li>Change title and subtitle</li>
+                        <li>Add/remove/reorder form fields</li>
+                        <li>Customize colors to match your brand</li>
+                        <li>Set field requirements (required/optional)</li>
+                    </ul>
+                </li>
+                <li><strong>Copy the embed code</strong> from the management page</li>
+                <li><strong>Paste it into your website</strong> where you want the contact form to appear</li>
+                <li><strong>View messages</strong> in the "Messages" tab of the widget management page</li>
+            </ol>
+        </div>
+
+        <div class="widget-demo">
+            <div class="widget-section">
+                <h3>📧 Standard Contact Form</h3>
+                <p>Default size widget perfect for most websites</p>
+                
+                <!-- Replace YOUR_MOBILE_NUMBER with actual mobile number -->
+                <iframe 
+                    src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/contact-us" 
+                    width="400" 
+                    height="500" 
+                    frameborder="0"
+                    style="border: none; border-radius: 12px; width: 100%; max-width: 400px;">
+                </iframe>
+
+                <div class="embed-code">
+&lt;iframe 
+  src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/contact-us" 
+  width="400" 
+  height="500" 
+  frameborder="0"
+  style="border: none; border-radius: 12px;"&gt;
+&lt;/iframe&gt;
+                </div>
+            </div>
+
+            <div class="widget-section">
+                <h3>📱 Compact Contact Form</h3>
+                <p>Smaller version perfect for sidebars</p>
+                
+                <!-- Replace YOUR_MOBILE_NUMBER with actual mobile number -->
+                <iframe 
+                    src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/contact-us" 
+                    width="350" 
+                    height="450" 
+                    frameborder="0"
+                    style="border: none; border-radius: 12px; width: 100%; max-width: 350px;">
+                </iframe>
+
+                <div class="embed-code">
+&lt;iframe 
+  src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/contact-us" 
+  width="350" 
+  height="450" 
+  frameborder="0"
+  style="border: none; border-radius: 12px;"&gt;
+&lt;/iframe&gt;
+                </div>
+            </div>
+        </div>
+
+        <div class="widget-section">
+            <h3>✨ Widget Features</h3>
+            <ul>
+                <li><strong>🎨 Fully Customizable:</strong> Change colors, fields, labels, and layout</li>
+                <li><strong>📱 Responsive Design:</strong> Works perfectly on desktop, tablet, and mobile</li>
+                <li><strong>🔒 Secure:</strong> All messages are stored securely with timestamps and IP tracking</li>
+                <li><strong>📨 Message Management:</strong> View, organize, and delete messages from the admin panel</li>
+                <li><strong>⚡ Real-time:</strong> Form submissions are processed instantly</li>
+                <li><strong>🌐 Universal:</strong> Works on any website - WordPress, HTML, React, etc.</li>
+                <li><strong>✅ Validation:</strong> Built-in form validation and error handling</li>
+                <li><strong>🎯 Smart Fields:</strong> Support for text, email, phone, and textarea fields</li>
+            </ul>
+        </div>
+
+        <div class="widget-section">
+            <h3>🛠️ Technical Integration</h3>
+            <h4>For WordPress:</h4>
+            <p>Add the iframe code to any page, post, or widget area using the HTML block or widget.</p>
+            
+            <h4>For Custom HTML:</h4>
+            <p>Simply paste the iframe code anywhere in your HTML where you want the contact form to appear.</p>
+            
+            <h4>For React/Next.js:</h4>
+            <div class="embed-code">
+function ContactFormWidget() {
+  return (
+    &lt;iframe 
+      src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/contact-us" 
+      width="400" 
+      height="500" 
+      frameBorder="0"
+      style={{border: 'none', borderRadius: '12px'}}
+    /&gt;
+  );
+}
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>🔧 Development Note:</strong> 
+            This is running on localhost:3000. In production, replace with your actual domain name.
+        </div>
+    </div>
+</body>
+</html> 

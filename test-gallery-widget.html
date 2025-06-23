@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Website with Enhanced Image Gallery Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        
+        header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .content-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gallery-section {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gallery-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+        
+        .widget-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .widget-iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            border-radius: 12px;
+            display: block;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .service-card {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .service-card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .features-list {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+        
+        .features-list h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .features-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .features-list li {
+            padding: 0.5rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .features-list li::before {
+            content: "✨ ";
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .customization-info {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+        
+        .customization-info h3 {
+            color: #2e7d32;
+            margin-bottom: 1rem;
+        }
+        
+        footer {
+            background: #333;
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .content-section {
+                padding: 1.5rem;
+            }
+            
+            .widget-iframe {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Beauty Studio & Salon</h1>
+        <p>Transform Your Look with Our Professional Services</p>
+    </header>
+
+    <div class="content-section">
+        <h2>Welcome to Our Beauty Studio</h2>
+        <p>
+            At our beauty studio, we specialize in creating stunning looks for every occasion. 
+            From everyday elegance to special event glamour, our expert stylists are here to 
+            help you look and feel your absolute best.
+        </p>
+        
+        <p>
+            With years of experience in the beauty industry, we offer a wide range of services 
+            including makeup artistry, hair styling, bridal packages, and much more. Every 
+            client receives personalized attention to ensure you get the perfect look.
+        </p>
+    </div>
+
+    <div class="gallery-section">
+        <h2 class="gallery-title">Our Style Gallery</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 2rem;">
+            Explore our different style categories and get inspired for your next look
+        </p>
+        
+        <div class="widget-container">
+            <!-- Image Gallery Widget Embed -->
+            <iframe 
+                src="http://localhost:3000/widget-preview/YOUR_MOBILE_NUMBER/image-gallery" 
+                class="widget-iframe"
+                title="Style Gallery"
+                loading="lazy">
+            </iframe>
+        </div>
+        
+        <p style="text-align: center; color: #888; font-size: 0.9rem; margin-top: 1rem;">
+            <em>Use the navigation arrows or dots to browse through our style categories</em>
+        </p>
+    </div>
+
+    <div class="customization-info">
+        <h3>🎉 New Feature: Customizable Gallery!</h3>
+        <p>
+            <strong>Business owners can now customize their gallery!</strong> This widget now supports 
+            advanced customization features where you can:
+        </p>
+        <ul style="margin: 1rem 0; padding-left: 2rem;">
+            <li>Add your own images via public URLs</li>
+            <li>Edit titles and descriptions</li>
+            <li>Delete unwanted images</li>
+            <li>Organize by custom categories</li>
+            <li>See changes instantly in the live preview</li>
+        </ul>
+        <p>
+            <strong>How to customize:</strong> Log into your account, go to Widgets → Image Gallery → 
+            Manage Widget, then use the "Add New Image" button to add your custom images!
+        </p>
+    </div>
+
+    <div class="features-list">
+        <h3>Widget Features</h3>
+        <ul>
+            <li>Responsive design that works on all devices</li>
+            <li>Smooth navigation with arrows and dots</li>
+            <li>Touch/swipe support for mobile devices</li>
+            <li>Automatic image fallbacks for broken URLs</li>
+            <li>Real-time customization capabilities</li>
+            <li>Database storage for your custom images</li>
+            <li>Image URL validation before saving</li>
+            <li>Easy embedding with simple iframe code</li>
+        </ul>
+    </div>
+
+    <div class="content-section">
+        <h2>Our Services</h2>
+        <div class="services-grid">
+            <div class="service-card">
+                <h3>Bridal Makeup</h3>
+                <p>Complete bridal packages including trial sessions, wedding day makeup, and hair styling.</p>
+            </div>
+            
+            <div class="service-card">
+                <h3>Party Styling</h3>
+                <p>Glamorous looks for parties, events, and special occasions that make you stand out.</p>
+            </div>
+            
+            <div class="service-card">
+                <h3>Everyday Beauty</h3>
+                <p>Natural, elegant looks perfect for daily wear, work, or casual outings.</p>
+            </div>
+            
+            <div class="service-card">
+                <h3>Hair Styling</h3>
+                <p>Professional hair cuts, coloring, treatments, and styling for all hair types.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2>Why Choose Us?</h2>
+        <ul style="font-size: 1.1rem; line-height: 1.8;">
+            <li><strong>Expert Stylists:</strong> Trained professionals with years of experience</li>
+            <li><strong>Quality Products:</strong> We use only premium, skin-friendly cosmetics</li>
+            <li><strong>Personalized Service:</strong> Every look is customized to suit your features</li>
+            <li><strong>Hygenic Environment:</strong> Clean, sanitized tools and workspace</li>
+            <li><strong>Affordable Pricing:</strong> Competitive rates for all our services</li>
+            <li><strong>Interactive Gallery:</strong> Browse our styles with our custom gallery widget</li>
+        </ul>
+    </div>
+
+    <div class="content-section">
+        <h2>How to Get Started</h2>
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px;">
+            <h3 style="color: #667eea; margin-bottom: 1rem;">For Business Owners:</h3>
+            <ol style="line-height: 1.8;">
+                <li>Sign up for an account on our platform</li>
+                <li>Go to <strong>Widgets → Image Gallery</strong></li>
+                <li>Click <strong>"Manage Widget"</strong> to customize your gallery</li>
+                <li>Add your own images using the <strong>"Add New Image"</strong> button</li>
+                <li>Copy the embed code and paste it into your website</li>
+                <li>Your custom gallery will appear instantly!</li>
+            </ol>
+        </div>
+        
+        <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+            <h3 style="color: #1976d2; margin-bottom: 1rem;">For Website Visitors:</h3>
+            <p style="line-height: 1.8;">
+                Simply browse the gallery above using the arrow buttons or dots. Each image represents 
+                a different style category. The gallery automatically adapts to your device size and 
+                supports touch gestures on mobile devices.
+            </p>
+        </div>
+    </div>
+
+    <footer>
+        <h3>Book Your Appointment Today!</h3>
+        <p>📞 Call us: +91 98765 43210</p>
+        <p>📧 Email: info@beautystudio.com</p>
+        <p>📍 Visit us: 123 Beauty Street, Style City</p>
+        <p style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #555; opacity: 0.8;">
+            This website uses the enhanced Image Gallery Widget with advanced customization features.<br>
+            &copy; 2024 Beauty Studio & Salon. All rights reserved.
+        </p>
+    </footer>
+
+    <script>
+        // Optional: Add some interactive functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Smooth scrolling for any anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+            
+            // Add loading message for the widget
+            const iframe = document.querySelector('.widget-iframe');
+            if (iframe) {
+                iframe.addEventListener('load', function() {
+                    console.log('Enhanced Image Gallery Widget loaded successfully!');
+                });
+                
+                iframe.addEventListener('error', function() {
+                    console.error('Failed to load Image Gallery Widget');
+                });
+            }
+            
+            // Add a subtle animation to feature cards
+            const featuresList = document.querySelector('.features-list');
+            if (featuresList) {
+                featuresList.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.02)';
+                    this.style.transition = 'transform 0.3s ease';
+                });
+                
+                featuresList.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            }
+        });
+    </script>
+</body>
+</html> 
