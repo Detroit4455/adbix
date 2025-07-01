@@ -429,7 +429,7 @@ export default function MyImages() {
                       />
                       
                       {/* Fallback for failed images */}
-                      <div className="hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500">
+                      <div className="hidden w-full h-full absolute inset-0 flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500">
                         <svg className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>

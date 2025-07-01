@@ -2,6 +2,8 @@ import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '../../api/auth/[...nextauth]/route';
 import AdminSidebar from '@/components/AdminSidebar';
+import DBCollectionsSection from './DBCollectionsSection';
+import PaymentSetupSection from './PaymentSetupSection';
 
 export default async function WebsiteDetailsPage() {
   const session = await getServerSession(authOptions);
@@ -40,6 +42,9 @@ export default async function WebsiteDetailsPage() {
                   <li>• Role-Based Access Control (RBAC)</li>
                   <li>• File Management System</li>
                   <li>• Dynamic Image Resizing & URL Generation</li>
+                  <li>• <strong>UPI Autopay Subscription System</strong></li>
+                  <li>• <strong>Razorpay Payment Integration</strong></li>
+                  <li>• <strong>Billing Plans & Add-ons Management</strong></li>
                 </ul>
               </div>
             </div>
@@ -72,6 +77,7 @@ export default async function WebsiteDetailsPage() {
                   <li>• AWS SDK S3 Client</li>
                   <li>• JWT Authentication</li>
                   <li>• Bcrypt.js</li>
+                  <li>• <strong>Razorpay SDK 2.9.8</strong></li>
                   <li>• Archiver</li>
                   <li>• Adm-zip</li>
                 </ul>
@@ -135,8 +141,27 @@ export default async function WebsiteDetailsPage() {
                   <li>Session management with NextAuth.js</li>
                 </ul>
               </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Payment & Subscriptions</h3>
+                <ul className="list-disc list-inside space-y-2 text-gray-600">
+                  <li>UPI Autopay for automatic recurring payments</li>
+                  <li>Flexible billing plans with customizable pricing</li>
+                  <li>Add-on services and premium features</li>
+                  <li>Real-time payment tracking via webhooks</li>
+                  <li>Subscription management (pause, resume, cancel)</li>
+                  <li>Razorpay integration with secure payment processing</li>
+                  <li>Customer billing dashboard and history</li>
+                  <li>Automated retry for failed payments</li>
+                </ul>
+              </div>
             </div>
           </section>
+
+          {/* Database Collections Section */}
+          <DBCollectionsSection />
+
+          {/* Payment & Subscription Setup Section */}
+          <PaymentSetupSection />
 
           {/* API Documentation Section */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -183,6 +208,23 @@ export default async function WebsiteDetailsPage() {
                   <li><code className="bg-gray-100 px-2 py-1 rounded">POST /api/image-gallery/upload</code> - Upload image</li>
                   <li><code className="bg-gray-100 px-2 py-1 rounded">GET /api/image-gallery/list</code> - List images</li>
                   <li><code className="bg-gray-100 px-2 py-1 rounded">PUT /api/image-gallery/update</code> - Update gallery</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Billing & Subscriptions</h3>
+                <ul className="space-y-2 text-gray-600">
+                  <li><code className="bg-gray-100 px-2 py-1 rounded">GET /api/billing/plans</code> - Get billing plans</li>
+                  <li><code className="bg-gray-100 px-2 py-1 rounded">GET /api/billing/addons</code> - Get addons</li>
+                  <li><code className="bg-gray-100 px-2 py-1 rounded">POST /api/subscriptions</code> - Create subscription</li>
+                  <li><code className="bg-gray-100 px-2 py-1 rounded">GET /api/subscriptions</code> - Get user subscriptions</li>
+                  <li><code className="bg-gray-100 px-2 py-1 rounded">PUT /api/subscriptions/[id]</code> - Manage subscription</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Payment Webhooks</h3>
+                <ul className="space-y-2 text-gray-600">
+                  <li><code className="bg-gray-100 px-2 py-1 rounded">POST /api/webhooks/razorpay</code> - Razorpay webhooks</li>
+                  <li><code className="bg-gray-100 px-2 py-1 rounded">GET /api/profile</code> - User profile</li>
                 </ul>
               </div>
             </div>

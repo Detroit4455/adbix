@@ -9,6 +9,7 @@ export default function LeftNavbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [isToolsExpanded, setIsToolsExpanded] = useState(false);
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
 
   if (!session) {
     return null;
@@ -16,6 +17,7 @@ export default function LeftNavbar() {
 
   const isActive = (path: string) => pathname === path;
   const isToolsActive = pathname.startsWith('/tools') || pathname === '/image_repo';
+  const isSettingsActive = pathname.startsWith('/billing') || pathname.startsWith('/profile');
 
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg border-r border-gray-200 z-40 transition-all duration-300">
@@ -170,6 +172,66 @@ export default function LeftNavbar() {
               Admin
             </Link>
           )}
+
+          {/* Settings Section */}
+          <div>
+            <button
+              onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isSettingsActive
+                  ? 'bg-green-50 text-green-700'
+                  : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
+              }`}
+            >
+              <div className="flex items-center">
+                <svg className="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Settings
+              </div>
+              <svg 
+                className={`h-4 w-4 transition-transform ${isSettingsExpanded ? 'rotate-90' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Settings Submenu */}
+            {isSettingsExpanded && (
+              <div className="ml-8 mt-1 space-y-1">
+                <Link
+                  href="/billing"
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive('/billing')
+                      ? 'bg-green-50 text-green-700 border-r-2 border-green-700'
+                      : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
+                  }`}
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Billing
+                </Link>
+                <Link
+                  href="/profile"
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive('/profile')
+                      ? 'bg-green-50 text-green-700 border-r-2 border-green-700'
+                      : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
+                  }`}
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Profile
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
     </div>

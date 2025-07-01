@@ -34,15 +34,8 @@ export default function S3FileManager() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingFile, setEditingFile] = useState<string | null>(null);
-  const [previewFile, setPreviewFile] = useState<string | null>(null);
-  const [previewMode, setPreviewMode] = useState<'view' | 'edit' | 'code'>('view');
-  const [previewContent, setPreviewContent] = useState<string>('');
-  const [isInlineEditing, setIsInlineEditing] = useState(false);
-  const previewIframeRef = useRef<HTMLIFrameElement>(null);
-  const [isSavingPreview, setIsSavingPreview] = useState(false);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
-  const refreshInterval = 30000; // 30 seconds
+  
+
 
   useEffect(() => {
     if (session?.user?.mobileNumber) {
@@ -272,129 +265,7 @@ export default function S3FileManager() {
     setCurrentPath(parentPath);
   };
 
-  const handlePreview = async (filePath: string) => {
-    try {
-      setIsPreviewLoading(true);
-      const response = await fetch(`/api/s3-file-content?userId=${session?.user?.mobileNumber}&path=${filePath}`);
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch file content');
-      }
-      
-      const data = await response.json();
-      setPreviewContent(data.content);
-      setPreviewFile(filePath);
-      setPreviewMode('view');
-      setLastRefreshTime(new Date());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load file for preview');
-    } finally {
-      setIsPreviewLoading(false);
-    }
-  };
 
-  const handleRefreshPreview = async () => {
-    if (!previewFile) return;
-    await handlePreview(previewFile);
-  };
-
-  // Add useEffect for auto-refresh
-  useEffect(() => {
-    if (previewMode === 'view' && previewFile) {
-      const interval = setInterval(() => {
-        handleRefreshPreview();
-      }, refreshInterval);
-
-      return () => clearInterval(interval);
-    }
-  }, [previewMode, previewFile]);
-
-  const handleSavePreview = async () => {
-    if (!previewFile || !previewContent) return;
-    
-    try {
-      setIsSavingPreview(true);
-      
-      // Clean up the content before saving
-      let cleanedContent = previewContent;
-      
-      // Remove any injected UI elements
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = cleanedContent;
-      
-      // Remove any elements with specific classes or IDs that might be injected
-      const elementsToRemove = tempDiv.querySelectorAll('.preview-ui, .image-replace, .refresh-button, [data-preview-mode]');
-      elementsToRemove.forEach(el => el.remove());
-      
-      // Remove any script tags that might have been injected
-      const scripts = tempDiv.querySelectorAll('script');
-      scripts.forEach(script => script.remove());
-      
-      // Get the cleaned HTML
-      cleanedContent = tempDiv.innerHTML;
-      
-      // Ensure we have proper HTML structure
-      if (!cleanedContent.includes('<!DOCTYPE html>')) {
-        cleanedContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${previewFile.split('/').pop()}</title>
-</head>
-<body>
-    ${cleanedContent}
-</body>
-</html>`;
-      }
-      
-      const response = await fetch('/api/s3-files', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: session?.user?.mobileNumber,
-          path: previewFile.substring(0, previewFile.lastIndexOf('/')),
-          content: cleanedContent,
-          fileName: previewFile.split('/').pop() || '',
-          isUpdate: true
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save changes');
-      }
-
-      setSuccess('Changes saved successfully');
-      setTimeout(() => setSuccess(''), 3000);
-      
-      // Refresh the preview content
-      setPreviewContent(cleanedContent);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes');
-    } finally {
-      setIsSavingPreview(false);
-    }
-  };
-
-  const handleEdit = async (filePath: string) => {
-    try {
-      const response = await fetch(`/api/s3-file-content?userId=${session?.user?.mobileNumber}&path=${filePath}`);
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch file content');
-      }
-      
-      const data = await response.json();
-      setEditingFile(filePath);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load file for editing');
-    }
-  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -756,19 +627,25 @@ Start writing your markdown content here.
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div className="flex space-x-4">
-                    {isEditableFile(file) && (
+                    {!file.isDirectory && (
                       <button
-                        onClick={() => handleEdit(file.path)}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        onClick={() => {
+                          if (file.name.endsWith('.html')) {
+                            // Open HTML files in live editor
+                            const editUrl = `/widgets/live-edit/${session?.user?.mobileNumber}/${file.path}`;
+                            window.open(editUrl, '_blank');
+                          } else {
+                            // Open other files directly
+                          const fileUrl = `/site/${session?.user?.mobileNumber}/${file.path}`;
+                            window.open(fileUrl, '_blank');
+                          }
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                        title={file.name.endsWith('.html') ? "Preview in live editor" : "Preview file in new tab"}
                       >
-                        Edit
-                      </button>
-                    )}
-                    {!file.isDirectory && file.name.endsWith('.html') && (
-                      <button
-                        onClick={() => handlePreview(file.path)}
-                        className="text-green-600 hover:text-green-900"
-                      >
+                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
                         Preview
                       </button>
                     )}
@@ -829,160 +706,9 @@ Start writing your markdown content here.
         document.body
       )}
 
-      {previewFile && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-11/12 h-5/6 flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <h3 className="text-lg font-medium">Previewing {previewFile}</h3>
-                {lastRefreshTime && (
-                  <span className="text-sm text-gray-500">
-                    Last refreshed: {lastRefreshTime.toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center space-x-4">
-                {isEditableFile({ name: previewFile, type: '', size: 0, lastModified: '', path: previewFile }) && (
-                  <>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setPreviewMode('view')}
-                        className={`px-3 py-1.5 text-xs rounded ${
-                          previewMode === 'view'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => setPreviewMode('edit')}
-                        className={`px-3 py-1.5 text-xs rounded ${
-                          previewMode === 'edit'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Edit Content
-                      </button>
-                      <button
-                        onClick={() => setPreviewMode('code')}
-                        className={`px-3 py-1.5 text-xs rounded ${
-                          previewMode === 'code'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Edit HTML
-                      </button>
-                    </div>
-                    {previewMode !== 'view' && (
-                      <button
-                        onClick={handleSavePreview}
-                        disabled={isSavingPreview}
-                        className={`px-3 py-1.5 text-xs rounded ${
-                          isSavingPreview
-                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            : 'bg-green-600 text-white hover:bg-green-700'
-                        }`}
-                      >
-                        {isSavingPreview ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    )}
-                  </>
-                )}
-                {previewMode === 'view' && (
-                  <button
-                    onClick={handleRefreshPreview}
-                    disabled={isPreviewLoading}
-                    className={`px-3 py-1.5 text-xs rounded ${
-                      isPreviewLoading
-                        ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {isPreviewLoading ? 'Refreshing...' : 'Refresh'}
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setPreviewFile(null);
-                    setPreviewContent('');
-                    setPreviewMode('view');
-                    setLastRefreshTime(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {previewMode === 'view' && (
-                <div className="w-full h-full flex flex-col">
-                  {isPreviewLoading && (
-                    <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
-                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
-                    </div>
-                  )}
-                  <div className="flex-1 overflow-auto p-4">
-                    <div
-                      className="prose max-w-none"
-                      dangerouslySetInnerHTML={{
-                        __html: previewContent.replace(
-                          /<img([^>]*)src=\"([^\"]*)\"([^>]*)>/g,
-                          (match, before, src, after) => {
-                            if (!src.startsWith('http') && !src.startsWith('/')) {
-                              return `<img${before}src=\"/site/${session?.user?.mobileNumber}/${src}\"${after}>`;
-                            }
-                            return match;
-                          }
-                        )
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-              {previewMode === 'edit' && (
-                <div className="w-full h-full flex flex-col">
-                  <div className="flex-1 overflow-auto p-4">
-                    <div
-                      contentEditable
-                      dangerouslySetInnerHTML={{ __html: previewContent }}
-                      onBlur={(e) => {
-                        // Clean up content when editing
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = e.currentTarget.innerHTML;
-                        // Remove any injected UI elements
-                        const elementsToRemove = tempDiv.querySelectorAll('.preview-ui, .image-replace, .refresh-button, [data-preview-mode]');
-                        elementsToRemove.forEach(el => el.remove());
-                        // Remove any script tags
-                        const scripts = tempDiv.querySelectorAll('script');
-                        scripts.forEach(script => script.remove());
-                        setPreviewContent(tempDiv.innerHTML);
-                      }}
-                      className="prose max-w-none"
-                      suppressContentEditableWarning={true}
-                    />
-                  </div>
-                </div>
-              )}
-              {previewMode === 'code' && (
-                <div className="w-full h-full">
-                  <CodeEditor
-                    filePath={`s3/${session?.user?.mobileNumber}/${previewFile}`}
-                    onClose={() => setPreviewMode('view')}
-                    embedded={true}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+
+
+
     </div>
   );
 }

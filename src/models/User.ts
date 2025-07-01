@@ -7,6 +7,14 @@ export interface IUser {
   name?: string;
   email?: string;
   role?: string;
+  businessName?: string;
+  businessCategory?: string;
+  businessAddress?: string;
+  area?: string;
+  pincode?: string;
+  instagramId?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
   permissions?: {
     websiteManager?: {
       canCreate?: boolean;
@@ -55,6 +63,56 @@ const userSchema = new Schema<IUser>({
     type: String,
     enum: ['user', 'admin', 'devops', 'manager'],
     default: 'user'
+  },
+  businessName: {
+    type: String,
+    trim: true
+  },
+  businessCategory: {
+    type: String,
+    trim: true
+  },
+  businessAddress: {
+    type: String,
+    trim: true
+  },
+  area: {
+    type: String,
+    trim: true
+  },
+  pincode: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v: string) {
+        return !v || /^[0-9]{6}$/.test(v);
+      },
+      message: props => `${props.value} is not a valid pincode!`
+    }
+  },
+  instagramId: {
+    type: String,
+    trim: true
+  },
+  instagramUrl: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v: string) {
+        return !v || /^https?:\/\/(www\.)?instagram\.com\//.test(v);
+      },
+      message: props => `${props.value} is not a valid Instagram URL!`
+    }
+  },
+  facebookUrl: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v: string) {
+        return !v || /^https?:\/\/(www\.)?facebook\.com\//.test(v);
+      },
+      message: props => `${props.value} is not a valid Facebook URL!`
+    }
   },
   permissions: {
     websiteManager: {
