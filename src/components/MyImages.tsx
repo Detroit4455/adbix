@@ -13,7 +13,11 @@ interface Image {
   key: string;
 }
 
-export default function MyImages() {
+interface MyImagesProps {
+  isSelectionMode?: boolean;
+}
+
+export default function MyImages({ isSelectionMode = false }: MyImagesProps) {
   const { data: session } = useSession();
   const [images, setImages] = useState<Image[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,6 +241,27 @@ export default function MyImages() {
     });
   };
 
+  const handleImageSelection = (image: Image) => {
+    if (isSelectionMode) {
+      console.log('🖼️ MyImages selection:', {
+        fileName: image.fileName,
+        publicUrl: image.publicUrl,
+        proxyUrl: image.proxyUrl
+      });
+      
+      // Send selected image data to parent window
+      window.opener.postMessage({
+        type: 'IMAGE_SELECTED',
+        imageUrl: image.publicUrl,
+        imageName: image.fileName,
+        imageId: image.key
+      }, window.location.origin);
+      
+      // Close the popup
+      window.close();
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl shadow-2xl border border-white/20 overflow-hidden backdrop-blur-sm">
       {/* Modern Header with Glassmorphism */}
@@ -250,8 +275,12 @@ export default function MyImages() {
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white drop-shadow-lg">My Images Gallery</h2>
-              <p className="text-white/80 text-sm font-medium">Upload, manage, and share your images</p>
+              <h2 className="text-2xl font-bold text-white drop-shadow-lg">
+                {isSelectionMode ? 'Select from My Images' : 'My Images Gallery'}
+              </h2>
+              <p className="text-white/80 text-sm font-medium">
+                {isSelectionMode ? 'Choose an image from your personal collection' : 'Upload, manage, and share your images'}
+              </p>
             </div>
           </div>
           <div className="bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm border border-white/30">
@@ -267,7 +296,8 @@ export default function MyImages() {
 
       {/* Content Section */}
       <div className="p-8">
-        {/* Premium Upload Section */}
+        {/* Premium Upload Section - Hidden in selection mode */}
+        {!isSelectionMode && (
         <div className="mb-8">
           <div 
             className="relative group border-3 border-dashed border-indigo-200 rounded-2xl p-12 text-center hover:border-indigo-400 transition-all duration-300 bg-gradient-to-br from-white/50 to-indigo-50/30 backdrop-blur-sm hover:shadow-2xl hover:scale-[1.02]"
@@ -347,6 +377,7 @@ export default function MyImages() {
             </div>
           </div>
         </div>
+        )}
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
@@ -465,45 +496,61 @@ export default function MyImages() {
                       
                       {/* Action Buttons */}
                       <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
+                        {isSelectionMode ? (
+                          /* Selection Mode - Show Select Button */
                           <button
-                            onClick={() => copyToClipboard(image.publicUrl)}
-                            className="flex items-center justify-center text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-md"
+                            onClick={() => handleImageSelection(image)}
+                            className="w-full flex items-center justify-center text-sm bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-md font-medium"
                           >
-                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            Copy
+                            Select Image
                           </button>
-                          <button
-                            onClick={() => handleReplaceClick(image.fileName)}
-                            disabled={replacingImage === image.fileName}
-                            className="flex items-center justify-center text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-3 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {replacingImage === image.fileName ? (
-                              <>
-                                <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></div>
-                                <span>...</span>
-                              </>
-                            ) : (
-                              <>
+                        ) : (
+                          /* Normal Mode - Show Regular Actions */
+                          <>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={() => copyToClipboard(image.publicUrl)}
+                                className="flex items-center justify-center text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-md"
+                              >
                                 <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                 </svg>
-                                Replace
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => deleteImage(image.fileName)}
-                          className="w-full flex items-center justify-center text-xs bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-2 rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-md"
-                        >
-                          <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete
-                        </button>
+                                Copy
+                              </button>
+                              <button
+                                onClick={() => handleReplaceClick(image.fileName)}
+                                disabled={replacingImage === image.fileName}
+                                className="flex items-center justify-center text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-3 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {replacingImage === image.fileName ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></div>
+                                    <span>...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Replace
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => deleteImage(image.fileName)}
+                              className="w-full flex items-center justify-center text-xs bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-2 rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-md"
+                            >
+                              <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -562,25 +609,47 @@ export default function MyImages() {
                 </div>
               </div>
               <div className="flex space-x-3">
-                <button
-                  onClick={() => handleReplaceClick(selectedImage.fileName)}
-                  disabled={replacingImage === selectedImage.fileName}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {replacingImage === selectedImage.fileName ? 'Replacing...' : 'Replace Image'}
-                </button>
-                <button
-                  onClick={() => deleteImage(selectedImage.fileName)}
-                  className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                >
-                  Delete Image
-                </button>
-                <button
-                  onClick={() => setSelectedImage(null)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  Close
-                </button>
+                {isSelectionMode ? (
+                  <>
+                    <button
+                      onClick={() => handleImageSelection(selectedImage)}
+                      className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-md"
+                    >
+                      <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Select This Image
+                    </button>
+                    <button
+                      onClick={() => setSelectedImage(null)}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleReplaceClick(selectedImage.fileName)}
+                      disabled={replacingImage === selectedImage.fileName}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {replacingImage === selectedImage.fileName ? 'Replacing...' : 'Replace Image'}
+                    </button>
+                    <button
+                      onClick={() => deleteImage(selectedImage.fileName)}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Delete Image
+                    </button>
+                    <button
+                      onClick={() => setSelectedImage(null)}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

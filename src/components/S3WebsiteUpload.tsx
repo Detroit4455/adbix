@@ -5,6 +5,26 @@ import { useDropzone } from 'react-dropzone';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+// Import our new URL utilities
+const getWebsiteUrl = (userId: string, filePath: string = 'index.html'): string => {
+  const cloudFrontBaseUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL;
+  if (cloudFrontBaseUrl) {
+    return `${cloudFrontBaseUrl}/sites/${userId}/${filePath}`;
+  }
+  // Fallback to S3 if CloudFront not configured
+  const s3BaseUrl = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+  return `${s3BaseUrl}/sites/${userId}/${filePath}`;
+};
+
+const getDirectS3Url = (userId: string, filePath: string = 'index.html'): string => {
+  const s3BaseUrl = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+  return `${s3BaseUrl}/sites/${userId}/${filePath}`;
+};
+
+const isCloudFrontConfigured = (): boolean => {
+  return !!(process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL && process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL.trim());
+};
+
 export default function S3WebsiteUpload() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -174,27 +194,61 @@ export default function S3WebsiteUpload() {
         </div>
       )}
 
-      {s3Url && (
+      {s3Url && session?.user?.mobileNumber && (
         <div className="mt-4 p-5 bg-blue-50 border border-blue-200 rounded-lg">
           <h3 className="text-lg font-medium text-blue-800 mb-2">Website Uploaded Successfully!</h3>
           <p className="mb-3 text-blue-700">Your website is now available at:</p>
+          
+          {/* Primary Website URL (CloudFront or S3) */}
           <div className="bg-white p-3 rounded-md flex items-center justify-between mb-3">
-            <span className="text-gray-800 font-medium overflow-x-auto">{s3Url}</span>
+            <div className="flex-1">
+              <div className="text-xs text-gray-500 mb-1">
+                {isCloudFrontConfigured() ? '🌐 CloudFront URL (Recommended)' : '📦 S3 Direct URL'}
+              </div>
+              <span className="text-gray-800 font-medium overflow-x-auto block">
+                {getWebsiteUrl(session.user.mobileNumber, 'index.html')}
+              </span>
+            </div>
             <a 
-              href={s3Url}
+              href={getWebsiteUrl(session.user.mobileNumber, 'index.html')}
               target="_blank"
               rel="noopener noreferrer"
               className="ml-3 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
             >
-              Visit S3 Site
+              Visit Website
             </a>
           </div>
+
+          {/* S3 Direct URL (if CloudFront is configured) */}
+          {isCloudFrontConfigured() && (
+            <div className="bg-gray-50 p-3 rounded-md flex items-center justify-between mb-3">
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 mb-1">📦 S3 Direct URL (Technical Reference)</div>
+                <span className="text-gray-600 font-mono text-sm overflow-x-auto block">
+                  {getDirectS3Url(session.user.mobileNumber, 'index.html')}
+                </span>
+              </div>
+              <a 
+                href={getDirectS3Url(session.user.mobileNumber, 'index.html')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-3 px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors whitespace-nowrap"
+              >
+                S3 Direct
+              </a>
+            </div>
+          )}
+
+          {/* App Viewer URL */}
           <div className="bg-white p-3 rounded-md flex items-center justify-between">
-            <span className="text-gray-800 font-medium overflow-x-auto">
-              http://localhost:3000/site/{session?.user?.mobileNumber}/index.html
-            </span>
+            <div className="flex-1">
+              <div className="text-xs text-gray-500 mb-1">🔧 In-App Viewer (with editing tools)</div>
+              <span className="text-gray-800 font-medium overflow-x-auto block">
+                http://localhost:3000/site/{session.user.mobileNumber}/index.html
+              </span>
+            </div>
             <a 
-              href={`/site-viewer/${session?.user?.mobileNumber}?path=index.html`}
+              href={`/site-viewer/${session.user.mobileNumber}?path=index.html`}
               className="ml-3 px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors whitespace-nowrap"
             >
               View In App

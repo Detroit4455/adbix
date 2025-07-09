@@ -3,6 +3,7 @@ import { connectMongoose } from '@/lib/db';
 
 export interface IServerSettings {
   maxImagesPerUser: number;
+  allowNewUserRegistration: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +20,10 @@ const serverSettingsSchema = new Schema<IServerSettings>({
     default: 50,
     min: 1,
     max: 1000
+  },
+  allowNewUserRegistration: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true,
@@ -44,6 +49,7 @@ serverSettingsSchema.statics.getSettings = async function(): Promise<IServerSett
     // Return default settings if there's an error
     return {
       maxImagesPerUser: 50,
+      allowNewUserRegistration: true,
       createdAt: new Date(),
       updatedAt: new Date()
     } as IServerSettings;
@@ -77,7 +83,8 @@ serverSettingsSchema.statics.initializeDefaultSettings = async function(): Promi
     
     if (!exists) {
       await this.create({
-        maxImagesPerUser: 50
+        maxImagesPerUser: 50,
+        allowNewUserRegistration: true
       });
     }
   } catch (error) {

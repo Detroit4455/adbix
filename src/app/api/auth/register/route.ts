@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '@/lib/db';
+import ServerSettings from '@/models/ServerSettings';
 
 export async function POST(request: Request) {
   try {
+    // Check if new user registration is allowed
+    const serverSettings = await ServerSettings.getSettings();
+    if (!serverSettings.allowNewUserRegistration) {
+      return NextResponse.json(
+        { error: 'New user registration is currently disabled' },
+        { status: 403 }
+      );
+    }
+
     const { name, mobileNumber, password } = await request.json();
 
     // Validate input

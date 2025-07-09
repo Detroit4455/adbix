@@ -329,6 +329,24 @@ export class RazorpayService {
   }
 
   /**
+   * Get subscription details and update local status
+   */
+  static async syncSubscriptionStatus(subscriptionId: string): Promise<any> {
+    try {
+      if (!isRazorpayConfigured()) {
+        throw new Error('Razorpay not configured');
+      }
+      
+      const razorpayInstance = getRazorpayInstance();
+      const subscription = await razorpayInstance.subscriptions.fetch(subscriptionId);
+      return subscription;
+    } catch (error) {
+      console.error('Error syncing subscription status:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Verify webhook signature
    */
   static verifyWebhookSignature(
@@ -349,6 +367,37 @@ export class RazorpayService {
       );
     } catch (error) {
       console.error('Error verifying webhook signature:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Verify payment signature as per Razorpay Integration Guide
+   * generated_signature = hmac_sha256(razorpay_payment_id + "|" + subscription_id, secret);
+   */
+  static verifyPaymentSignature(
+    razorpayPaymentId: string,
+    razorpaySubscriptionId: string,
+    razorpaySignature: string
+  ): boolean {
+    try {
+      if (!isRazorpayConfigured()) {
+        throw new Error('Razorpay not configured');
+      }
+
+      const crypto = require('crypto');
+      const payload = `${razorpayPaymentId}|${razorpaySubscriptionId}`;
+      const expectedSignature = crypto
+        .createHmac('sha256', RAZORPAY_CONFIG.key_secret)
+        .update(payload)
+        .digest('hex');
+      
+      return crypto.timingSafeEqual(
+        Buffer.from(razorpaySignature),
+        Buffer.from(expectedSignature)
+      );
+    } catch (error) {
+      console.error('Error verifying payment signature:', error);
       return false;
     }
   }

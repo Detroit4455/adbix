@@ -142,26 +142,37 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Prepare subscription data for Razorpay
+    // Log subscription timing for debugging
+    console.log('Creating subscription with current time:', new Date());
+    console.log('Current timestamp:', Math.floor(Date.now() / 1000));
+
+    // Prepare subscription data for Razorpay with immediate charging
+    const currentTime = Math.floor(Date.now() / 1000);
     const subscriptionData: any = {
       plan_id: plan.razorpayPlanId,
       customer_notify: true,
       quantity: 1,
       total_count: 12, // 12 months for annual billing
       customer_id: razorpayCustomer.id,
-      start_at: Math.floor(Date.now() / 1000) + 600, // Start after 10 minutes
-      expire_by: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // Expire in 24 hours
+      start_at: currentTime + 120, // Start after 2 minutes to allow for authentication
+      expire_by: currentTime + (24 * 60 * 60), // Expire in 24 hours
       notes: {
         userId: session.user.id,
         planId: planId,
         totalAmount: RazorpayService.toPaise(totalAmount),
-        addons: JSON.stringify(selectedAddons)
+        addons: JSON.stringify(selectedAddons),
+        chargeImmediately: 'true' // Flag to indicate immediate charging should happen after authentication
       },
       notify_info: notifyInfo ? {
         notify_phone: notifyInfo.phone,
         notify_email: notifyInfo.email
       } : undefined
     };
+
+    console.log('🔥 Creating subscription with immediate charging:');
+    console.log('⏰ Current time:', new Date(currentTime * 1000));
+    console.log('🚀 Start time:', new Date((currentTime + 120) * 1000));
+    console.log('💳 Note: Razorpay will auto-charge after successful authentication');
 
     // Add addons to subscription if any
     if (addonDetails.length > 0) {
@@ -179,11 +190,32 @@ export async function POST(request: NextRequest) {
     let razorpaySubscription;
     try {
       razorpaySubscription = await RazorpayService.createSubscription(subscriptionData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating Razorpay subscription:', error);
+      
+      // Handle timing-related errors
+      if (error.error && (
+        error.error.description?.includes('start time is past') ||
+        error.error.description?.includes('Cannot do an auth transaction')
+      )) {
+        // Retry with a later start time
+        console.log('Retrying subscription creation with later start time...');
+        subscriptionData.start_at = Math.floor(Date.now() / 1000) + 7200; // 2 hours from now
+        
+        try {
+          razorpaySubscription = await RazorpayService.createSubscription(subscriptionData);
+          console.log('Subscription created successfully on retry');
+        } catch (retryError) {
+          console.error('Error on retry:', retryError);
+          return NextResponse.json({ 
+            error: 'Failed to create subscription due to timing issues. Please try again in a few minutes.' 
+          }, { status: 500 });
+        }
+      } else {
       return NextResponse.json({ 
         error: 'Failed to create subscription' 
       }, { status: 500 });
+      }
     }
 
     // Save subscription to database

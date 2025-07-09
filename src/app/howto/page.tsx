@@ -19,6 +19,7 @@ import {
 export default function HowToPage() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['structure']);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => 
@@ -80,10 +81,13 @@ export default function HowToPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <LeftNavbar />
+    <div className="min-h-screen bg-gray-50">
+      <LeftNavbar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
       <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
-        <Navbar />
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* Hero Section */}
         <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white">

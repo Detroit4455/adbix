@@ -21,10 +21,31 @@ import {
   ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline';
 
+// URL utility functions for CloudFront support
+function getWebsiteUrl(userId: string, filePath: string = 'index.html'): string {
+  const cloudFrontBaseUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL;
+  if (cloudFrontBaseUrl) {
+    return `${cloudFrontBaseUrl}/sites/${userId}/${filePath}`;
+  }
+  // Fallback to S3 if CloudFront not configured
+  const s3BaseUrl = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+  return `${s3BaseUrl}/sites/${userId}/${filePath}`;
+}
+
+function getDirectS3Url(userId: string, filePath: string = 'index.html'): string {
+  const s3BaseUrl = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+  return `${s3BaseUrl}/sites/${userId}/${filePath}`;
+}
+
+function isCloudFrontConfigured(): boolean {
+  return !!(process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL && process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL.trim());
+}
+
 export default function WebOnS3Page() {
   const { data: session, status } = useSession();
   const [activeTab, setActiveTab] = useState('upload');
   const [isTabsCollapsed, setIsTabsCollapsed] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -87,10 +108,13 @@ export default function WebOnS3Page() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <LeftNavbar />
+    <div className="min-h-screen bg-gray-50">
+      <LeftNavbar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
       <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
-        <Navbar />
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* Hero Section */}
         <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-700 text-white">
@@ -271,45 +295,97 @@ export default function WebOnS3Page() {
                   </div>
 
                   <div className="grid gap-8 md:grid-cols-2">
-                    {/* Amazon S3 Direct Access */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                    {/* Primary Website Access (CloudFront or S3) */}
+                    <div className={`bg-gradient-to-br ${isCloudFrontConfigured() ? 'from-green-50 to-emerald-50 border-green-200' : 'from-blue-50 to-indigo-50 border-blue-200'} border rounded-xl p-6`}>
                       <div className="flex items-center mb-4">
-                        <div className="bg-blue-500 rounded-lg p-2 mr-3">
-                          <ServerIcon className="h-6 w-6 text-white" />
+                        <div className={`${isCloudFrontConfigured() ? 'bg-green-500' : 'bg-blue-500'} rounded-lg p-2 mr-3`}>
+                          {isCloudFrontConfigured() ? 
+                            <GlobeAltIcon className="h-6 w-6 text-white" /> : 
+                            <ServerIcon className="h-6 w-6 text-white" />
+                          }
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900">Amazon S3 Direct</h3>
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {isCloudFrontConfigured() ? '🌐 CloudFront Distribution' : '📦 Amazon S3 Direct'}
+                        </h3>
                       </div>
                       <p className="text-gray-600 text-sm mb-4">
-                        Direct access to your website hosted on Amazon S3 infrastructure with global CDN delivery.
+                        {isCloudFrontConfigured() ? 
+                          'Fast global content delivery via AWS CloudFront CDN with edge caching and optimized performance.' :
+                          'Direct access to your website hosted on Amazon S3 infrastructure.'
+                        }
                       </p>
                       
                       <div className="bg-white p-4 rounded-lg border mb-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">S3 URL:</span>
+                          <span className="text-sm font-medium text-gray-700">
+                            {isCloudFrontConfigured() ? 'CloudFront URL:' : 'S3 URL:'}
+                          </span>
                           <button
-                            onClick={() => navigator.clipboard.writeText(`https://dt-web-sites.s3.ap-south-1.amazonaws.com/sites/${mobileNumber}/index.html`)}
-                            className="text-blue-600 hover:text-blue-500 text-sm"
+                            onClick={() => navigator.clipboard.writeText(getWebsiteUrl(mobileNumber))}
+                            className={`${isCloudFrontConfigured() ? 'text-green-600 hover:text-green-500' : 'text-blue-600 hover:text-blue-500'} text-sm`}
                           >
                             Copy
                           </button>
                         </div>
-                        <code className="text-sm text-blue-700 font-mono break-all block bg-blue-50 p-2 rounded">
-                          https://dt-web-sites.s3.ap-south-1.amazonaws.com/sites/{mobileNumber}/index.html
+                        <code className={`text-sm font-mono break-all block p-2 rounded ${isCloudFrontConfigured() ? 'text-green-700 bg-green-50' : 'text-blue-700 bg-blue-50'}`}>
+                          {getWebsiteUrl(mobileNumber)}
                         </code>
                       </div>
                       
                       {mobileNumber && (
                         <a 
-                          href={`https://dt-web-sites.s3.ap-south-1.amazonaws.com/sites/${mobileNumber}/index.html`}
+                          href={getWebsiteUrl(mobileNumber)}
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors text-sm font-medium text-white ${isCloudFrontConfigured() ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                         >
-                                                     <ArrowTopRightOnSquareIcon className="h-4 w-4 mr-2" />
-                           Open S3 Website
+                          <ArrowTopRightOnSquareIcon className="h-4 w-4 mr-2" />
+                          {isCloudFrontConfigured() ? 'Open via CloudFront' : 'Open S3 Website'}
                         </a>
                       )}
                     </div>
+
+                    {/* S3 Direct Access (shown only if CloudFront is configured) */}
+                    {isCloudFrontConfigured() && (
+                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-6">
+                        <div className="flex items-center mb-4">
+                          <div className="bg-gray-500 rounded-lg p-2 mr-3">
+                            <ServerIcon className="h-6 w-6 text-white" />
+                          </div>
+                          <h3 className="text-xl font-semibold text-gray-900">📦 S3 Direct Access</h3>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4">
+                          Direct access to your website files on Amazon S3. Useful for technical debugging and direct file access.
+                        </p>
+                        
+                        <div className="bg-white p-4 rounded-lg border mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">S3 Direct URL:</span>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(getDirectS3Url(mobileNumber))}
+                              className="text-gray-600 hover:text-gray-500 text-sm"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <code className="text-sm text-gray-700 font-mono break-all block bg-gray-50 p-2 rounded">
+                            {getDirectS3Url(mobileNumber)}
+                          </code>
+                        </div>
+                        
+                        {mobileNumber && (
+                          <a 
+                            href={getDirectS3Url(mobileNumber)}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                          >
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4 mr-2" />
+                            Open S3 Direct
+                          </a>
+                        )}
+                      </div>
+                    )}
 
                     {/* Next.js Proxy Access */}
                     <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">

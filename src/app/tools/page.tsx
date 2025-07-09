@@ -1,14 +1,28 @@
-import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
-import { authOptions } from '../api/auth/[...nextauth]/route';
+'use client';
+
+import React, { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import LeftNavbar from '@/components/LeftNavbar';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 
-export default async function ToolsPage() {
-  const session = await getServerSession(authOptions);
+export default function ToolsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
   if (!session) {
-    redirect('/login');
+    router.push('/login');
+    return null;
   }
 
   const tools = [
@@ -99,10 +113,13 @@ export default async function ToolsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <LeftNavbar />
-      <div className="flex-1 ml-64">
-        <Navbar />
+    <div className="min-h-screen bg-gray-50">
+      <LeftNavbar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
+      <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         <div className="container mx-auto px-6 py-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Tools</h1>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface ServerSettings {
   maxImagesPerUser: number;
+  allowNewUserRegistration: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,6 +16,7 @@ export default function ServerSettingsForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [maxImagesPerUser, setMaxImagesPerUser] = useState<number>(50);
+  const [allowNewUserRegistration, setAllowNewUserRegistration] = useState<boolean>(true);
 
   useEffect(() => {
     loadSettings();
@@ -29,6 +31,7 @@ export default function ServerSettingsForm() {
       if (response.ok) {
         setSettings(data);
         setMaxImagesPerUser(data.maxImagesPerUser);
+        setAllowNewUserRegistration(data.allowNewUserRegistration ?? true);
       } else {
         setError(data.error || 'Failed to load settings');
       }
@@ -51,7 +54,10 @@ export default function ServerSettingsForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ maxImagesPerUser }),
+        body: JSON.stringify({ 
+          maxImagesPerUser,
+          allowNewUserRegistration 
+        }),
       });
 
       const data = await response.json();
@@ -162,6 +168,29 @@ export default function ServerSettingsForm() {
                   </p>
                 </div>
               </div>
+
+              {/* User Registration Control */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">User Registration Control</h3>
+                
+                <div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="allowNewUserRegistration"
+                      checked={allowNewUserRegistration}
+                      onChange={(e) => setAllowNewUserRegistration(e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="allowNewUserRegistration" className="ml-2 block text-sm font-medium text-gray-700">
+                      Allow New User Registration
+                    </label>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">
+                    When enabled, new users can create accounts. When disabled, only existing users can log in.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Current Settings Display */}
@@ -174,6 +203,12 @@ export default function ServerSettingsForm() {
                     <div className="flex justify-between items-center py-2 border-b border-gray-200">
                       <span className="text-sm font-medium text-gray-600">Max Images Per User:</span>
                       <span className="text-sm font-semibold text-gray-900">{settings.maxImagesPerUser}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-sm font-medium text-gray-600">New User Registration:</span>
+                      <span className={`text-sm font-semibold ${settings.allowNewUserRegistration ? 'text-green-600' : 'text-red-600'}`}>
+                        {settings.allowNewUserRegistration ? 'Enabled' : 'Disabled'}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-gray-200">
                       <span className="text-sm font-medium text-gray-600">Last Updated:</span>

@@ -49,15 +49,25 @@ npm run setup
 ```
 This will prompt you to enter your MongoDB connection string. If you don't have one, it will use the default local connection.
 
-4. Set up AWS S3 for the S3 hosting feature:
+4. Set up AWS S3 and CloudFront for the S3 hosting feature:
    - Create an S3 bucket with public read access
-   - Add your AWS credentials to a `.env.local` file:
+   - Set up CloudFront distribution pointing to your S3 bucket
+   - Add your AWS credentials and CloudFront configuration to a `.env.local` file:
    ```
+   # AWS S3 Configuration (for file uploads and management)
    AWS_ACCESS_KEY_ID=your_access_key_id
    AWS_SECRET_ACCESS_KEY=your_secret_access_key
    AWS_REGION=your_aws_region
    AWS_S3_BUCKET_NAME=your_bucket_name
    S3_BASE_URL=https://dt-web-sites.s3.ap-south-1.amazonaws.com
+   
+   # CloudFront Configuration (for website serving to users)
+   CLOUDFRONT_DOMAIN=your-cloudfront-distribution-domain.cloudfront.net
+   CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.cloudfront.net
+   
+   # Frontend Environment Variables (for client-side components)
+   NEXT_PUBLIC_S3_BASE_URL=https://dt-web-sites.s3.ap-south-1.amazonaws.com
+   NEXT_PUBLIC_CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.cloudfront.net
    ```
 
 5. Start the development server:

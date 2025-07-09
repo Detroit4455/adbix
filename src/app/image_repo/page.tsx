@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import LeftNavbar from '@/components/LeftNavbar';
 import Navbar from '@/components/Navbar';
 import MyImages from '@/components/MyImages';
+import { getImageRepoUrl } from '@/lib/aws-urls';
 
 interface ImageFile {
   id: string;
@@ -48,7 +49,9 @@ export default function ImageRepoPage() {
   const [images, setImages] = useState<ImageFile[]>([]);
   const [stats, setStats] = useState<ImageStats | null>(null);
   const [hasUploadAccess, setHasUploadAccess] = useState(false);
+  const [hasDeleteAccess, setHasDeleteAccess] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,6 +68,15 @@ export default function ImageRepoPage() {
   const [showFullSizeModal, setShowFullSizeModal] = useState(false);
   const [selectedImageForFullSize, setSelectedImageForFullSize] = useState<ImageFile | null>(null);
   const [activeTab, setActiveTab] = useState<'repository' | 'myImages'>('repository');
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Check if in selection mode on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    setIsSelectionMode(urlParams.get('mode') === 'select');
+  }, []);
 
   // Fetch images from API
   const fetchImages = async () => {
@@ -110,9 +122,13 @@ export default function ImageRepoPage() {
           const response = await fetch(`/api/admin/rbac-settings/check?resource=image-repo&role=${session.user.role}`);
           const data = await response.json();
           setHasUploadAccess(data.hasAccess || session.user.role === 'admin');
+          
+          // Only admins can delete from image repository
+          setHasDeleteAccess(session.user.role === 'admin');
         } catch (error) {
           console.error('Error checking RBAC access:', error);
           setHasUploadAccess(session.user.role === 'admin');
+          setHasDeleteAccess(session.user.role === 'admin');
         }
       }
     };
@@ -137,14 +153,15 @@ export default function ImageRepoPage() {
         setShowFullSizeModal(false);
         setShowUrlModal(false);
         setShowUploadModal(false);
+        setShowDeleteConfirmModal(false);
       }
     };
 
-    if (showFullSizeModal || showUrlModal || showUploadModal) {
+    if (showFullSizeModal || showUrlModal || showUploadModal || showDeleteConfirmModal) {
       window.addEventListener('keydown', handleEscape);
       return () => window.removeEventListener('keydown', handleEscape);
     }
-  }, [showFullSizeModal, showUrlModal, showUploadModal]);
+  }, [showFullSizeModal, showUrlModal, showUploadModal, showDeleteConfirmModal]);
 
   // Early returns for loading and authentication
   if (status === 'loading') {
@@ -235,8 +252,16 @@ export default function ImageRepoPage() {
     );
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (selectedImages.length === 0) return;
+    setShowDeleteConfirmModal(true);
+  };
+
+  const confirmDeleteImages = async () => {
+    setShowDeleteConfirmModal(false);
+    setIsDeleting(true);
+    setError('');
+    setSuccess('');
 
     try {
       const response = await fetch('/api/image-repo/images', {
@@ -250,16 +275,32 @@ export default function ImageRepoPage() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccess(`Deleted ${data.deleted} image(s)`);
+        let message = `Successfully deleted ${data.deleted} image(s) from database`;
+        
+        if (data.details) {
+          message += ` and ${data.details.s3Deleted} file(s) from S3 storage`;
+        }
+        
+        if (data.warnings && data.warnings.length > 0) {
+          message += `\n\nWarnings:\n${data.warnings.join('\n')}`;
+        }
+
+        setSuccess(message);
         setSelectedImages([]);
         await fetchImages();
         await fetchStats();
       } else {
-        setError(data.error || 'Failed to delete images');
+        if (response.status === 403) {
+          setError('Access denied. Only administrators can delete images from the repository.');
+        } else {
+          setError(data.error || 'Failed to delete images');
+        }
       }
     } catch (err) {
-      setError('Failed to delete images');
+      setError('Failed to delete images. Please try again.');
       console.error('Delete error:', err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -350,6 +391,42 @@ export default function ImageRepoPage() {
     setShowFullSizeModal(true);
   };
 
+  // Handle image selection for preview mode
+  const handleImageSelection = (image: ImageFile) => {
+    if (isSelectionMode && window.opener) {
+      // Simple approach: Extract just the image path and create a clean CloudFront URL
+      const imagePathMatch = image.s3Url.match(/imagerepo\/[a-f0-9-]+\.(png|jpg|jpeg|gif|webp|svg)/i);
+      
+             let finalUrl;
+       if (imagePathMatch) {
+         // Create clean CloudFront URL
+         finalUrl = `https://d2zexu2cqcpus.cloudfront.net/${imagePathMatch[0]}`;
+       } else {
+         // Fallback to original S3 URL if pattern doesn't match
+         finalUrl = image.s3Url;
+       }
+      
+      console.log('🖼️ Simple image selection:', {
+        originalS3Url: image.s3Url,
+        extractedImagePath: imagePathMatch ? imagePathMatch[0] : 'not found',
+        finalCleanUrl: finalUrl
+      });
+      
+      // Send selected image data to parent window
+      window.opener.postMessage({
+        type: 'IMAGE_SELECTED',
+        imageUrl: finalUrl,
+        imageName: image.name,
+        imageId: image.id
+      }, window.location.origin);
+      
+      // Close the popup
+      window.close();
+    }
+  };
+
+
+
   const filteredImages = images.filter(img => {
     const matchesSearch = img.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       img.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -388,10 +465,31 @@ export default function ImageRepoPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">
-      <LeftNavbar />
-      <div className="flex-1 ml-64">
-        <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {!isSelectionMode && (
+        <LeftNavbar 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)} 
+        />
+      )}
+      <div className={`flex-1 ${!isSelectionMode ? 'ml-0 lg:ml-64' : 'ml-0'} transition-all duration-300`}>
+        {!isSelectionMode && <Navbar onMenuClick={() => setIsSidebarOpen(true)} />}
+        {isSelectionMode && (
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold">🖼️ Select Image from Repository</h1>
+                <p className="text-indigo-100 text-sm">Choose an image to replace in your website</p>
+              </div>
+              <button
+                onClick={() => window.close()}
+                className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                ✕ Cancel
+              </button>
+            </div>
+          </div>
+        )}
         <div className="container mx-auto px-6 py-8">
           {/* Header */}
           <div className="mb-10">
@@ -411,8 +509,8 @@ export default function ImageRepoPage() {
               </div>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 bg-white rounded-t-2xl shadow-sm">
+            {/* Tab Navigation - Always show, but styled differently in selection mode */}
+            <div className={`flex border-b border-gray-200 bg-white ${!isSelectionMode ? 'rounded-t-2xl' : 'rounded-t-2xl mt-6'} shadow-sm`}>
               <button
                 onClick={() => setActiveTab('repository')}
                 className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 relative ${
@@ -425,8 +523,11 @@ export default function ImageRepoPage() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
-                  Image Repository
+                  Image Gallery
                 </div>
+                {isSelectionMode && (
+                  <div className="text-xs text-indigo-500 mt-1">Shared Repository</div>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('myImages')}
@@ -434,7 +535,7 @@ export default function ImageRepoPage() {
                   activeTab === 'myImages'
                     ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,6 +543,9 @@ export default function ImageRepoPage() {
                   </svg>
                   My Images
                 </div>
+                {isSelectionMode && (
+                  <div className="text-xs text-indigo-500 mt-1">Your Personal Images</div>
+                )}
               </button>
             </div>
           </div>
@@ -450,11 +554,11 @@ export default function ImageRepoPage() {
           {activeTab === 'myImages' ? (
             /* My Images Tab */
             <div className="bg-white rounded-b-2xl shadow-sm p-6">
-              <MyImages />
+              <MyImages isSelectionMode={isSelectionMode} />
             </div>
           ) : (
             /* Repository Tab */
-            <div className="bg-white rounded-b-2xl shadow-sm">
+            <div className={`bg-white ${!isSelectionMode ? 'rounded-b-2xl' : 'rounded-b-2xl'} shadow-sm`}>
               {/* Error/Success Messages */}
               {error && (
                 <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-800 px-6 py-4 rounded-xl mb-6 shadow-sm">
@@ -477,47 +581,61 @@ export default function ImageRepoPage() {
                 </div>
               )}
 
-          {/* Controls */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-8">
-            <div className="flex flex-col sm:flex-row gap-6 items-center justify-between">
-              <div className="flex items-center gap-4">
-                {hasUploadAccess && (
-                  <label className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleFileSelection}
-                      className="hidden"
-                    />
-                    Upload Images
-                  </label>
-                )}
-                
-                {selectedImages.length > 0 && hasUploadAccess && (
-                  <button
-                    onClick={handleDeleteSelected}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium flex items-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete Selected ({selectedImages.length})
-                  </button>
-                )}
+          {/* Controls - Hidden in selection mode */}
+          {!isSelectionMode && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-8">
+              <div className="flex flex-col sm:flex-row gap-6 items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {hasUploadAccess && (
+                    <label className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFileSelection}
+                        className="hidden"
+                      />
+                      Upload Images
+                    </label>
+                  )}
+                  
+                  {selectedImages.length > 0 && hasDeleteAccess && (
+                    <button
+                      onClick={handleDeleteSelected}
+                      disabled={isDeleting}
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none font-medium flex items-center gap-2"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete Selected ({selectedImages.length})
+                        </>
+                      )}
+                    </button>
+                  )}
 
-                {!hasUploadAccess && (
-                  <div className="bg-gradient-to-r from-gray-400 to-gray-500 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-not-allowed opacity-75">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Upload Restricted
-                  </div>
-                )}
-              </div>
+                  {!hasUploadAccess && (
+                    <div className="bg-gradient-to-r from-gray-400 to-gray-500 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-not-allowed opacity-75">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Upload Restricted
+                    </div>
+                  )}
+                </div>
 
               <div className="flex items-center gap-4">
                 <select
@@ -582,8 +700,9 @@ export default function ImageRepoPage() {
               </div>
             </div>
           </div>
+          )}
 
-              {/* Images Display */}
+          {/* Images Display */}
           {filteredImages.length === 0 ? (
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-16 text-center">
               <div className="w-24 h-24 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -678,26 +797,41 @@ export default function ImageRepoPage() {
                     </div>
                     {/* Action buttons at bottom */}
                     <div className="flex gap-3">
-                      <button
-                        onClick={() => copyToClipboard(image.s3Url, 'Original URL')}
-                        className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                        title="Copy original URL"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy
-                      </button>
-                      <button
-                        onClick={() => openUrlModal(image)}
-                        className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                        title="Resize options"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                        </svg>
-                        Resize
-                      </button>
+                      {isSelectionMode ? (
+                        <button
+                          onClick={() => handleImageSelection(image)}
+                          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                          title="Select this image"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Select Image
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => copyToClipboard(image.s3Url, 'Original URL')}
+                            className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                            title="Copy original URL"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy
+                          </button>
+                          <button
+                            onClick={() => openUrlModal(image)}
+                            className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                            title="Resize options"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                            Resize
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -783,24 +917,35 @@ export default function ImageRepoPage() {
                         {new Date(image.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => copyToClipboard(image.s3Url, 'Original URL')}
-                          className="text-indigo-600 hover:text-indigo-900 mr-3"
-                        >
-                          Copy URL
-                        </button>
-                        <button
-                          onClick={() => openUrlModal(image)}
-                          className="text-green-600 hover:text-green-900 mr-3"
-                        >
-                          Resize
-                        </button>
-                        <button
-                          onClick={() => setSelectedImages([image.id])}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Select
-                        </button>
+                        {isSelectionMode ? (
+                          <button
+                            onClick={() => handleImageSelection(image)}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                          >
+                            ✓ Select Image
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => copyToClipboard(image.s3Url, 'Original URL')}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3"
+                            >
+                              Copy URL
+                            </button>
+                            <button
+                              onClick={() => openUrlModal(image)}
+                              className="text-green-600 hover:text-green-900 mr-3"
+                            >
+                              Resize
+                            </button>
+                            <button
+                              onClick={() => setSelectedImages([image.id])}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Select
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -810,7 +955,7 @@ export default function ImageRepoPage() {
           )}
 
           {/* Stats */}
-          {stats && hasUploadAccess && (
+          {!isSelectionMode && stats && hasUploadAccess && (
             <div className="mt-10 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -1238,6 +1383,92 @@ export default function ImageRepoPage() {
                   className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                   onClick={(e) => e.stopPropagation()}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirmModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+                {/* Modal Header */}
+                <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Confirm Deletion</h3>
+                      <p className="text-red-100 text-sm">This action cannot be undone</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Content */}
+                <div className="px-6 py-6">
+                  <div className="mb-6">
+                    <p className="text-gray-800 text-base mb-4">
+                      Are you sure you want to delete <strong>{selectedImages.length}</strong> {selectedImages.length === 1 ? 'image' : 'images'}?
+                    </p>
+                    
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h4 className="font-medium text-red-800 mb-2">This action will:</h4>
+                      <ul className="text-sm text-red-700 space-y-1">
+                        <li className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete the images from S3 storage
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
+                          </svg>
+                          Remove the database records
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Make the images permanently inaccessible
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <span className="font-medium text-amber-800">Warning</span>
+                    </div>
+                    <p className="text-amber-700 text-sm">
+                      This action is irreversible. The images will be permanently deleted and cannot be recovered.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirmModal(false)}
+                    className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteImages}
+                    className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete {selectedImages.length} {selectedImages.length === 1 ? 'Image' : 'Images'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

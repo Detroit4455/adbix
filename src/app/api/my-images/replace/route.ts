@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getAssetUrl } from '@/lib/aws-urls';
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-south-1',
@@ -83,8 +84,8 @@ export async function PUT(request: NextRequest) {
 
     await s3Client.send(uploadCommand);
 
-    // Generate public URL
-    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${s3Key}`;
+    // Generate public URL using CloudFront if available, otherwise fallback to S3
+    const publicUrl = getAssetUrl(mobileNumber, `my-images/${finalFileName}`);
     
     console.log(`Generated public URL: ${publicUrl}`);
 

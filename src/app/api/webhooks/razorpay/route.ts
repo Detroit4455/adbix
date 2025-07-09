@@ -150,7 +150,10 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
       return;
     }
 
+    const wasFirstPayment = subscription.paidCount === 0 || subscription.status === 'authenticated';
+    
     // Update billing information
+    subscription.status = 'active'; // Ensure subscription becomes active after payment
     subscription.paidCount = subscriptionData.paid_count;
     subscription.remainingCount = subscriptionData.remaining_count;
     subscription.nextBillingDate = subscriptionData.charge_at ? 
@@ -178,13 +181,23 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
     }
 
     subscription.webhookEvents.push({
-      eventType: 'subscription.charged',
-      eventData: { payment: paymentData, subscription: subscriptionData },
+      eventType: wasFirstPayment ? 'subscription.first_payment_charged' : 'subscription.charged',
+      eventData: { 
+        payment: paymentData, 
+        subscription: subscriptionData,
+        wasFirstPayment,
+        activatedFromAuthenticated: wasFirstPayment && subscription.status === 'authenticated'
+      },
       processedAt: new Date()
     });
 
     await subscription.save();
+    
+    if (wasFirstPayment) {
+      console.log('First payment charged, subscription activated:', subscription.razorpaySubscriptionId, paymentData.amount);
+    } else {
     console.log('Subscription charged:', subscription.razorpaySubscriptionId, paymentData.amount);
+    }
 
   } catch (error) {
     console.error('Error handling subscription charged:', error);
@@ -344,8 +357,167 @@ async function handleSubscriptionAuthenticated(subscriptionData: any) {
     await subscription.save();
     console.log('Subscription authenticated (UPI Autopay approved):', subscription.razorpaySubscriptionId);
 
+    // For UPI Autopay, immediately charge the first payment to activate subscription
+    console.log('Triggering immediate first payment for UPI Autopay:', subscription.razorpaySubscriptionId);
+    await triggerFirstPayment(subscription.razorpaySubscriptionId);
+
   } catch (error) {
     console.error('Error handling subscription authenticated:', error);
+  }
+}
+
+/**
+ * Trigger first payment for UPI Autopay subscription
+ */
+async function triggerFirstPayment(subscriptionId: string) {
+  try {
+    if (!isRazorpayConfigured()) {
+      console.error('Razorpay not configured for payment triggering');
+      return;
+    }
+
+    const razorpayInstance = new (require('razorpay'))({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
+    // First, update the subscription to charge immediately
+    const currentTime = Math.floor(Date.now() / 1000);
+    console.log('Updating subscription to charge immediately:', subscriptionId);
+    
+    try {
+      const updatedSubscription = await razorpayInstance.subscriptions.edit(subscriptionId, {
+        start_at: currentTime, // Start now
+        charge_at: currentTime + 60 // Charge in 1 minute
+      });
+      
+      console.log('Subscription updated for immediate charging:', subscriptionId, {
+        status: updatedSubscription.status,
+        start_at: updatedSubscription.start_at,
+        charge_at: updatedSubscription.charge_at
+      });
+
+      // Update local subscription with new timing
+      const subscription = await Subscription.findOne({
+        razorpaySubscriptionId: subscriptionId
+      });
+
+      if (subscription) {
+        subscription.startDate = new Date(updatedSubscription.start_at * 1000);
+        subscription.nextBillingDate = new Date(updatedSubscription.charge_at * 1000);
+        subscription.status = updatedSubscription.status;
+
+        subscription.webhookEvents.push({
+          eventType: 'subscription.charge_triggered',
+          eventData: {
+            originalChargeAt: subscription.nextBillingDate,
+            newChargeAt: updatedSubscription.charge_at,
+            updatedSubscription
+          },
+          processedAt: new Date()
+        });
+
+        await subscription.save();
+        console.log('Local subscription updated for immediate charging:', subscriptionId);
+      }
+
+    } catch (updateError: any) {
+      console.error('Error updating subscription for immediate charging:', subscriptionId, updateError);
+      
+      // If update fails, try to sync status instead
+      console.log('Falling back to status sync for:', subscriptionId);
+      await activateUPIAutopaySubscription(subscriptionId);
+    }
+
+  } catch (error) {
+    console.error('Error triggering first payment:', subscriptionId, error);
+  }
+}
+
+/**
+ * Activate UPI Autopay subscription manually
+ */
+async function activateUPIAutopaySubscription(subscriptionId: string) {
+  try {
+    if (!isRazorpayConfigured()) {
+      console.error('Razorpay not configured for subscription activation');
+      return;
+    }
+
+    const razorpayInstance = new (require('razorpay'))({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
+    // Fetch the latest subscription status from Razorpay
+    const razorpaySubscription = await razorpayInstance.subscriptions.fetch(subscriptionId);
+    
+    console.log('Current Razorpay subscription status:', subscriptionId, razorpaySubscription.status);
+
+    // Update local subscription status based on Razorpay status
+    const subscription = await Subscription.findOne({
+      razorpaySubscriptionId: subscriptionId
+    });
+
+    if (subscription) {
+      const previousStatus = subscription.status;
+      
+      // Update status based on Razorpay response
+      subscription.status = razorpaySubscription.status;
+      subscription.startDate = new Date(razorpaySubscription.start_at * 1000);
+      subscription.nextBillingDate = razorpaySubscription.charge_at ? 
+        new Date(razorpaySubscription.charge_at * 1000) : subscription.nextBillingDate;
+      subscription.currentPeriodStart = razorpaySubscription.current_start ? 
+        new Date(razorpaySubscription.current_start * 1000) : subscription.currentPeriodStart;
+      subscription.currentPeriodEnd = razorpaySubscription.current_end ? 
+        new Date(razorpaySubscription.current_end * 1000) : subscription.currentPeriodEnd;
+
+      subscription.webhookEvents.push({
+        eventType: 'subscription.status_synced',
+        eventData: {
+          previousStatus,
+          currentStatus: razorpaySubscription.status,
+          razorpayData: razorpaySubscription,
+          syncedAt: new Date()
+        },
+        processedAt: new Date()
+      });
+
+      await subscription.save();
+      console.log('Local subscription status updated:', subscriptionId, `${previousStatus} -> ${subscription.status}`);
+      
+      // If still authenticated, try to force activation by updating the subscription
+      if (razorpaySubscription.status === 'authenticated') {
+        console.log('Subscription still authenticated, attempting to force activation...');
+        
+        try {
+          // Try to update the subscription to trigger activation
+          const updatedSubscription = await razorpayInstance.subscriptions.edit(subscriptionId, {
+            start_at: Math.floor(Date.now() / 1000) + 60, // Start in 1 minute
+            charge_at: Math.floor(Date.now() / 1000) + 120 // Charge in 2 minutes
+          });
+          
+          console.log('Subscription updated for activation:', subscriptionId, updatedSubscription.status);
+          
+          // Update local status again
+          subscription.status = updatedSubscription.status;
+          subscription.webhookEvents.push({
+            eventType: 'subscription.force_activated',
+            eventData: updatedSubscription,
+            processedAt: new Date()
+          });
+          
+          await subscription.save();
+          console.log('Subscription force activated:', subscriptionId, subscription.status);
+          
+        } catch (updateError) {
+          console.error('Error force activating subscription:', subscriptionId, updateError);
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('Error syncing UPI Autopay subscription status:', subscriptionId, error);
   }
 }
 

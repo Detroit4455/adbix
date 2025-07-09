@@ -17,6 +17,24 @@ NEXTAUTH_SECRET=your-super-secret-key-here
 MONGODB_URI=mongodb://localhost:27017/web-as-a-service
 ```
 
+### AWS S3 and CloudFront Configuration
+```env
+# AWS S3 Configuration (for file uploads and management)
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=ap-south-1
+AWS_S3_BUCKET_NAME=dt-web-sites
+S3_BASE_URL=https://dt-web-sites.s3.ap-south-1.amazonaws.com
+
+# CloudFront Configuration (for website serving to users)
+CLOUDFRONT_DOMAIN=your-cloudfront-distribution-domain.cloudfront.net
+CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.cloudfront.net
+
+# Frontend Environment Variables (for client-side components)
+NEXT_PUBLIC_S3_BASE_URL=https://dt-web-sites.s3.ap-south-1.amazonaws.com
+NEXT_PUBLIC_CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.cloudfront.net
+```
+
 ### Razorpay Configuration (Required for billing features)
 ```env
 RAZORPAY_KEY_ID=rzp_test_1234567890
@@ -69,6 +87,22 @@ NEXTAUTH_SECRET=generate-a-strong-secret-key-32-chars-min
 
 # MongoDB Configuration
 MONGODB_URI=mongodb://localhost:27017/web-as-a-service
+
+# AWS S3 and CloudFront Configuration
+# AWS S3 Configuration (for file uploads and management)
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=ap-south-1
+AWS_S3_BUCKET_NAME=dt-web-sites
+S3_BASE_URL=https://dt-web-sites.s3.ap-south-1.amazonaws.com
+
+# CloudFront Configuration (for website serving to users)
+CLOUDFRONT_DOMAIN=your-cloudfront-distribution-domain.cloudfront.net
+CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.cloudfront.net
+
+# Frontend Environment Variables (for client-side components)
+NEXT_PUBLIC_S3_BASE_URL=https://dt-web-sites.s3.ap-south-1.amazonaws.com
+NEXT_PUBLIC_CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.cloudfront.net
 
 # Razorpay Configuration
 RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE

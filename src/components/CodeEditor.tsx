@@ -6,15 +6,19 @@ import Editor from '@monaco-editor/react';
 import { useSession } from 'next-auth/react';
 
 interface CodeEditorProps {
-  filePath: string;
+  filePath?: string;
+  fileName?: string;
+  templateId?: string;
   onClose: () => void;
+  onSave?: () => void;
   embedded?: boolean;
+  isTemplate?: boolean;
 }
 
-export default function CodeEditor({ filePath, onClose, embedded = false }: CodeEditorProps): React.ReactNode {
+export default function CodeEditor({ filePath, fileName, templateId, onClose, onSave, embedded = false, isTemplate = false }: CodeEditorProps): React.ReactNode {
   const { data: session } = useSession();
   const [content, setContent] = useState<string>('');
-  const [fileName, setFileName] = useState<string>('');
+  const [currentFileName, setCurrentFileName] = useState<string>('');
   const [language, setLanguage] = useState<string>('plaintext');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -22,22 +26,59 @@ export default function CodeEditor({ filePath, onClose, embedded = false }: Code
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    if (session?.user?.mobileNumber && filePath) {
+    if (isTemplate && templateId && fileName) {
+      fetchTemplateFileContent();
+    } else if (session?.user?.mobileNumber && filePath) {
       fetchFileContent();
     }
-  }, [session, filePath]);
+  }, [session, filePath, isTemplate, templateId, fileName]);
 
   // Set default content templates for new files
   useEffect(() => {
-    if (content === '' && fileName) {
-      const extension = fileName.split('.').pop()?.toLowerCase();
+    if (content === '' && currentFileName) {
+      const extension = currentFileName.split('.').pop()?.toLowerCase();
       setContent(getDefaultTemplate(extension));
     }
-  }, [fileName, content]);
+  }, [currentFileName, content]);
+
+  const fetchTemplateFileContent = async () => {
+    try {
+      setLoading(true);
+      
+      if (!templateId || !fileName) {
+        throw new Error('Template ID and file name are required');
+      }
+      
+      const response = await fetch(`/api/admin/templates/file-content?templateId=${templateId}&fileName=${fileName}`);
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to fetch template file content');
+      }
+      
+      const data = await response.json();
+      setContent(data.content);
+      setCurrentFileName(fileName);
+      
+      // Determine language based on file extension
+      const extension = fileName.split('.').pop()?.toLowerCase();
+      setLanguage(getLanguageFromExtension(extension));
+      
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load template file');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchFileContent = async () => {
     try {
       setLoading(true);
+      
+      if (!filePath) {
+        throw new Error('File path is required');
+      }
       
       // Check if this is an S3 file
       if (filePath.startsWith('s3/')) {
@@ -53,7 +94,7 @@ export default function CodeEditor({ filePath, onClose, embedded = false }: Code
         
         const data = await response.json();
         setContent(data.content);
-        setFileName(path.split('/').pop() || '');
+        setCurrentFileName(path.split('/').pop() || '');
       } else {
         // Handle regular file system files
         const response = await fetch(`/api/files/edit?mobileNumber=${session?.user?.mobileNumber}&path=${filePath}`);
@@ -65,11 +106,11 @@ export default function CodeEditor({ filePath, onClose, embedded = false }: Code
         
         const data = await response.json();
         setContent(data.content);
-        setFileName(data.fileName);
+        setCurrentFileName(data.fileName);
       }
       
       // Determine language based on file extension
-      const extension = fileName.split('.').pop()?.toLowerCase();
+      const extension = currentFileName.split('.').pop()?.toLowerCase();
       setLanguage(getLanguageFromExtension(extension));
       
       setError('');
@@ -85,6 +126,25 @@ export default function CodeEditor({ filePath, onClose, embedded = false }: Code
       setSaving(true);
       setSaveSuccess(false);
       
+      if (isTemplate && templateId && fileName) {
+        // Handle template file
+        const response = await fetch('/api/admin/templates/file-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            templateId,
+            fileName,
+            content,
+          }),
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to save template file');
+        }
+      } else if (filePath) {
       // Check if this is an S3 file
       if (filePath.startsWith('s3/')) {
         const [_, userId, ...pathParts] = filePath.split('/');
@@ -127,17 +187,23 @@ export default function CodeEditor({ filePath, onClose, embedded = false }: Code
         if (!response.ok) {
           const data = await response.json();
           throw new Error(data.error || 'Failed to save file');
+          }
         }
       }
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
       
+      // Call onSave callback if provided
+      if (onSave) {
+        onSave();
+      }
+      
       // Dispatch event with saved content for the preview
-      if (typeof window !== 'undefined' && fileName.endsWith('.html')) {
+      if (typeof window !== 'undefined' && currentFileName.endsWith('.html')) {
         const updateEvent = new CustomEvent('fileContentUpdate', {
           detail: { 
-            filePath: filePath,
+            filePath: filePath || `template/${templateId}/${currentFileName}`,
             content: content 
           }
         });
@@ -289,7 +355,7 @@ This is a sample project.
               setContent(newContent);
               
               // Dispatch event with updated content for the preview
-              if (typeof window !== 'undefined' && fileName.endsWith('.html')) {
+              if (typeof window !== 'undefined' && currentFileName.endsWith('.html')) {
                 const updateEvent = new CustomEvent('fileContentUpdate', {
                   detail: { 
                     filePath: filePath,
@@ -319,7 +385,7 @@ This is a sample project.
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">{fileName}</h2>
+          <h2 className="text-xl font-bold">{currentFileName}</h2>
           <button 
             onClick={onClose}
             className="p-1 hover:bg-gray-200 rounded"

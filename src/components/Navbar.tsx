@@ -6,7 +6,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 
-export default function Navbar() {
+interface NavbarProps {
+  onMenuClick?: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -27,8 +31,16 @@ export default function Navbar() {
   }, []);
 
   const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push('/login');
+    try {
+      await signOut({ 
+        redirect: true,
+        callbackUrl: '/login'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: try to navigate manually if signOut fails
+      router.push('/login');
+    }
   };
 
   return (
@@ -36,13 +48,27 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <div className="h-8 w-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            {/* Mobile menu button */}
+            {session && (
+              <button
+                onClick={onMenuClick}
+                className="lg:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 mr-3"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
+              </button>
+            )}
+            
+            <Link href="/" className="flex items-center">
+              <div className="h-10 w-10 mr-3">
+                <img 
+                  src="/favicon_io/android-chrome-192x192.png" 
+                  alt="adbix" 
+                  className="h-full w-full object-contain"
+                />
               </div>
-              <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+              <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500">
                 adbix
               </span>
             </Link>

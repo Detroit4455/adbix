@@ -21,6 +21,7 @@ import {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -90,10 +91,13 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <LeftNavbar />
+    <div className="min-h-screen bg-gray-50">
+      <LeftNavbar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
       <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
-        <Navbar />
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* Hero Section */}
         <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white">

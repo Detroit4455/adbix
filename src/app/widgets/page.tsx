@@ -16,6 +16,7 @@ import {
   CodeBracketIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
 
 interface Widget {
   id: string;
@@ -30,9 +31,11 @@ interface Widget {
 
 export default function WidgetsPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [copiedWidgetId, setCopiedWidgetId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   if (status === 'loading') {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -128,10 +131,13 @@ export default function WidgetsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <LeftNavbar />
-      <div className="flex-1 ml-64">
-        <Navbar />
+    <div className="min-h-screen bg-gray-50">
+      <LeftNavbar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
+      <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
           {/* Header Section */}
           <div className="bg-white border-b border-gray-200">

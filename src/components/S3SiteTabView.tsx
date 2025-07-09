@@ -4,6 +4,21 @@ import { useState } from 'react';
 import S3SiteViewer from '@/components/S3SiteViewer';
 import WebsiteConfigEditor from '@/components/WebsiteConfigEditor';
 
+// URL utility functions for CloudFront support
+function getWebsiteUrl(userId: string, filePath: string = 'index.html'): string {
+  const cloudFrontBaseUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL;
+  if (cloudFrontBaseUrl) {
+    return `${cloudFrontBaseUrl}/sites/${userId}/${filePath}`;
+  }
+  // Fallback to S3 if CloudFront not configured
+  const s3BaseUrl = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+  return `${s3BaseUrl}/sites/${userId}/${filePath}`;
+}
+
+function isCloudFrontConfigured(): boolean {
+  return !!(process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL && process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL.trim());
+}
+
 interface S3SiteTabViewProps {
   userId: string;
   initialPath: string;
@@ -53,12 +68,13 @@ export default function S3SiteTabView({ userId, initialPath }: S3SiteTabViewProp
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-800">Files and Directories</h2>
               <a 
-                href={`https://dt-web-sites.s3.ap-south-1.amazonaws.com/sites/${userId}/index.html`}
+                href={getWebsiteUrl(userId)}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors inline-flex items-center"
+                title={isCloudFrontConfigured() ? 'View via CloudFront' : 'View via S3'}
               >
-                View Live Site
+                {isCloudFrontConfigured() ? '🌐 View Live Site' : '📦 View Live Site'}
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>

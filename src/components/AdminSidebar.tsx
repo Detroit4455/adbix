@@ -91,6 +91,16 @@ export default function AdminSidebar({ onCollapse }: AdminSidebarProps) {
       roles: ['admin', 'devops'] // Only admin and devops can see this
     },
     {
+      name: 'Templates',
+      href: '/admin/templates',
+      icon: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className={props.className}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+        </svg>
+      ),
+      roles: ['admin', 'devops'] // Only admin and devops can manage templates
+    },
+    {
       name: 'Statistics',
       href: '/admin/statistics',
       icon: (props) => (

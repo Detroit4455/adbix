@@ -323,9 +323,16 @@ export default function BillingPage() {
     return basePrice + addOnPrice;
   };
 
-  const handleSubscriptionAction = async (action: 'cancel' | 'pause' | 'resume', subscriptionId: string) => {
+  const handleSubscriptionAction = async (action: 'cancel' | 'pause' | 'resume' | 'activate' | 'refresh', subscriptionId: string) => {
     try {
       setProcessingPayment(true);
+      
+      if (action === 'refresh') {
+        // Just refresh the data
+        await fetchData();
+        showModal('Status Refreshed', 'Subscription status has been refreshed. Please check if your subscription is now active.', 'info');
+        return;
+      }
       
       const response = await fetch(`/api/subscriptions/${subscriptionId}`, {
         method: 'PUT',
@@ -337,58 +344,40 @@ export default function BillingPage() {
 
       const result = await response.json();
       
-      if (result.success) {
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to perform action');
+      }
+
         // Refresh subscription data
         await fetchData();
-        showModal('Success', `Subscription ${action}ed successfully!`, 'success');
-      } else {
-        // Handle specific error cases
-        let errorMessage = `Failed to ${action} subscription. Please try again.`;
+
+      let message = '';
+      let title = '';
         
-        if (result.error) {
-          switch (result.error) {
-            case 'Subscription not found':
-              errorMessage = 'Subscription not found. Please refresh the page and try again.';
+      switch (action) {
+        case 'cancel':
+          title = 'Subscription Cancelled';
+          message = 'Your subscription has been cancelled successfully.';
               break;
-            case 'Unauthorized':
-              errorMessage = 'Your session has expired. Please log in again.';
+        case 'pause':
+          title = 'Subscription Paused';
+          message = 'Your subscription has been paused successfully.';
               break;
-            case 'Payment service not configured':
-              errorMessage = 'Payment service is temporarily unavailable. Please contact support.';
+        case 'resume':
+          title = 'Subscription Resumed';
+          message = 'Your subscription has been resumed successfully.';
               break;
-            case 'Invalid subscription status':
-              errorMessage = `Cannot ${action} subscription in its current state. Please refresh the page to see the latest status.`;
+        case 'activate':
+          title = 'Activation Initiated';
+          message = 'Your subscription activation has been triggered. The first payment will be processed shortly. Please refresh the page in a few moments to see the updated status.';
               break;
-            case 'Subscription already cancelled':
-              errorMessage = 'This subscription is already cancelled.';
-              break;
-            case 'Subscription already active':
-              errorMessage = 'This subscription is already active.';
-              break;
-            default:
-              errorMessage = result.error;
-          }
-        }
-        
-        showModal('Subscription Error', errorMessage, 'error');
       }
+
+      showModal(title, message, 'success');
+
     } catch (error: any) {
-      console.error(`Error ${action}ing subscription:`, error);
-      
-      // Handle network and other errors
-      let errorMessage = `Unable to ${action} subscription. Please check your internet connection and try again.`;
-      
-      if (error.message) {
-        if (error.message.includes('network') || error.message.includes('fetch')) {
-          errorMessage = 'Network error. Please check your internet connection and try again.';
-        } else if (error.message.includes('timeout')) {
-          errorMessage = 'Request timed out. Please try again.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      showModal('Network Error', errorMessage, 'error');
+      console.error('Error performing subscription action:', error);
+      showModal('Error', error.message || 'Failed to perform action', 'error');
     } finally {
       setProcessingPayment(false);
     }
@@ -438,10 +427,10 @@ export default function BillingPage() {
             try {
               // Refresh subscription data
               await fetchData();
-              showModal('Success', 'Subscription created successfully! You will receive payment notifications via SMS and email.', 'success');
+              showModal('Success', 'UPI Autopay mandate approved successfully! Your subscription will be activated automatically. You will receive payment notifications via SMS and email.', 'success');
             } catch (error) {
               console.error('Error refreshing data after payment:', error);
-              showModal('Success', 'Subscription created successfully! Please refresh the page to see updated information.', 'success');
+              showModal('Success', 'UPI Autopay mandate approved successfully! Please refresh the page to see updated information.', 'success');
             } finally {
               // Always stop processing state after payment success
               setProcessingPayment(false);
@@ -518,7 +507,12 @@ export default function BillingPage() {
               errorMessage = 'Your session has expired. Please log in again.';
               break;
             default:
+              // Check for timing-related errors
+              if (result.error.includes('start time is past') || result.error.includes('Cannot do an auth transaction')) {
+                errorMessage = 'There was a timing issue with the payment setup. Please try again in a few moments. The system is setting up your UPI Autopay subscription.';
+              } else {
               errorMessage = result.error;
+              }
           }
         }
         
@@ -1092,12 +1086,44 @@ export default function BillingPage() {
                                     <div className="text-sm text-gray-500 mb-1">Status</div>
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                       subscription.status === 'active' ? 'bg-green-100 text-green-800' : 
+                                      subscription.status === 'authenticated' ? 'bg-blue-100 text-blue-800' :
                                       subscription.status === 'paused' ? 'bg-yellow-100 text-yellow-800' : 
                                       'bg-red-100 text-red-800'
                                     }`}>
-                                      {subscription.status === 'active' ? '🟢' : subscription.status === 'paused' ? '🟡' : '🔴'}
-                                      {subscription.status.toUpperCase()}
+                                      {subscription.status === 'active' ? '🟢' : 
+                                       subscription.status === 'authenticated' ? '🔵' :
+                                       subscription.status === 'paused' ? '🟡' : '🔴'}
+                                      {subscription.status === 'authenticated' ? 'AUTHENTICATED (UPI)' : subscription.status.toUpperCase()}
                                     </span>
+                                    
+                                    {/* Helpful message for authenticated subscriptions */}
+                                    {subscription.status === 'authenticated' && (
+                                      <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                        <p className="text-sm text-yellow-800">
+                                          <strong>UPI Autopay mandate approved!</strong> Your subscription is ready.
+                                          The first payment will be charged automatically within the next few minutes to activate your subscription.
+                                        </p>
+                                        <div className="mt-2 flex gap-2">
+                                          <button
+                                            onClick={() => handleSubscriptionAction('activate', subscription.id)}
+                                            disabled={processingPayment}
+                                            className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                                          >
+                                            {processingPayment ? 'Processing...' : 'Charge Now'}
+                                          </button>
+                                          <button
+                                            onClick={() => handleSubscriptionAction('refresh', subscription.id)}
+                                            disabled={processingPayment}
+                                            className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+                                          >
+                                            {processingPayment ? 'Checking...' : 'Check Status'}
+                                          </button>
+                                        </div>
+                                        <p className="text-xs text-yellow-600 mt-1">
+                                          💡 If the subscription doesn't activate automatically, click "Charge Now" to process the first payment immediately.
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                   <div>
                                     <div className="text-sm text-gray-500 mb-1">Start Date</div>

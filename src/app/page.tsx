@@ -69,13 +69,17 @@ export default function Home() {
       <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mr-2">
-                <GlobeAltIcon className="h-5 w-5 text-white" />
+                        <div className="flex items-center">
+              <div className="h-10 w-10 mr-3">
+                <img 
+                  src="/favicon_io/android-chrome-192x192.png" 
+                  alt="adbix" 
+                  className="h-full w-full object-contain"
+                />
               </div>
-                             <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                 adbix
-               </span>
+              <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500">
+                adbix
+              </span>
             </div>
             <div className="flex items-center space-x-4">
               <Link
@@ -295,12 +299,16 @@ export default function Home() {
       <footer className="bg-gray-900 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-1 md:col-span-2">
+                        <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
-                <div className="h-8 w-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mr-2">
-                  <GlobeAltIcon className="h-5 w-5 text-white" />
+                <div className="h-10 w-10 mr-3">
+                  <img 
+                    src="/favicon_io/android-chrome-192x192.png" 
+                    alt="adbix" 
+                    className="h-full w-full object-contain"
+                  />
                 </div>
-                                 <span className="text-xl font-bold">adbix</span>
+                <span className="text-xl font-bold text-white">adbix</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-md">
                 Professional website hosting and management platform designed for developers, 

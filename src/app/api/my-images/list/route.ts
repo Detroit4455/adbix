@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { S3Client, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { getAssetUrl } from '@/lib/aws-urls';
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-south-1',
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest) {
           if (!item.Key) return null;
 
           const fileName = item.Key.split('/').pop() || '';
-          const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${item.Key}`;
+          // Use CloudFront URL if available, otherwise fallback to S3
+          const publicUrl = getAssetUrl(mobileNumber, `my-images/${fileName}`);
           const proxyUrl = `/api/my-images/proxy/${mobileNumber}/my-images/${fileName}`;
 
           try {

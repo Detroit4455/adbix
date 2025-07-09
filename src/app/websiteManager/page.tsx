@@ -7,6 +7,26 @@ import Link from 'next/link';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 
+// URL utility functions for CloudFront support
+function getWebsiteUrl(userId: string, filePath: string = 'index.html'): string {
+  const cloudFrontBaseUrl = process.env.CLOUDFRONT_BASE_URL;
+  if (cloudFrontBaseUrl) {
+    return `${cloudFrontBaseUrl}/sites/${userId}/${filePath}`;
+  }
+  // Fallback to S3 if CloudFront not configured
+  const s3BaseUrl = process.env.S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+  return `${s3BaseUrl}/sites/${userId}/${filePath}`;
+}
+
+function getDirectS3Url(userId: string, filePath: string = 'index.html'): string {
+  const s3BaseUrl = process.env.S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+  return `${s3BaseUrl}/sites/${userId}/${filePath}`;
+}
+
+function isCloudFrontConfigured(): boolean {
+  return !!(process.env.CLOUDFRONT_BASE_URL && process.env.CLOUDFRONT_BASE_URL.trim());
+}
+
 interface User {
   id: string;
   name: string | null;
@@ -142,12 +162,13 @@ export default async function WebsiteManagerPage() {
                         {user.mobileNumber && (
                           <>
                             <a 
-                              href={`https://dt-web-sites.s3.ap-south-1.amazonaws.com/sites/${user.mobileNumber}/index.html`}
+                              href={getWebsiteUrl(user.mobileNumber)}
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-900"
+                              title={isCloudFrontConfigured() ? 'View via CloudFront' : 'View via S3'}
                             >
-                              View Site
+                              {isCloudFrontConfigured() ? '🌐 View Site' : '📦 View Site'}
                             </a>
                             <span className="text-gray-300">|</span>
                             <Link 
@@ -156,6 +177,20 @@ export default async function WebsiteManagerPage() {
                             >
                               Manage Files
                             </Link>
+                            {isCloudFrontConfigured() && (
+                              <>
+                                <span className="text-gray-300">|</span>
+                                <a 
+                                  href={getDirectS3Url(user.mobileNumber)}
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-gray-600 hover:text-gray-900 text-xs"
+                                  title="Direct S3 access"
+                                >
+                                  S3 Direct
+                                </a>
+                              </>
+                            )}
                           </>
                         )}
                       </div>

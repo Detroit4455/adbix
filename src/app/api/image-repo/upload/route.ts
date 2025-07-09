@@ -6,6 +6,7 @@ import { connectMongoose } from '@/lib/db';
 import Image from '@/models/Image';
 import { randomUUID } from 'crypto';
 import sizeOf from 'image-size';
+import { getImageRepoUrl } from '@/lib/aws-urls';
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -136,8 +137,8 @@ export async function POST(request: NextRequest) {
 
         await s3Client.send(uploadCommand);
         
-        // Generate S3 URL
-        const s3Url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${s3Key}`;
+        // Generate CloudFront URL (falls back to S3 if CloudFront not configured)
+        const imageUrl = getImageRepoUrl(s3Key);
         
         // Save metadata to database
         const imageDoc = new Image({
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
           description: description?.trim() || '',
           fileName: file.name,
           s3Key: s3Key,
-          s3Url: s3Url,
+          s3Url: imageUrl,
           size: file.size,
           width: width,
           height: height,

@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
-import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
 // Initialize S3 client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: process.env.AWS_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
 
-const bucketName = process.env.AWS_S3_BUCKET_NAME || 'dt-web-sites';
+const bucketName = process.env.AWS_S3_BUCKET_NAME!;
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,11 +27,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { oldImagePath, newImageUrl, mobileNumber } = body;
+    const { oldImagePath, newImageUrl, mobileNumber, currentPagePath } = body;
 
-    if (!oldImagePath || !newImageUrl || !mobileNumber) {
+    if (!newImageUrl || !mobileNumber) {
       return NextResponse.json(
-        { error: 'Missing required fields: oldImagePath, newImageUrl, or mobileNumber' },
+        { error: 'Missing required fields: newImageUrl or mobileNumber' },
         { status: 400 }
       );
     }
@@ -54,20 +54,78 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update image references in HTML files
-    const updatedFiles = await updateImageReferencesInHTML(mobileNumber, oldImagePath, newImageUrl);
+    console.log('=== SINGLE PHASE: Smart Image Replacement ===');
+    console.log(`oldImagePath: ${oldImagePath}`);
+    console.log(`newImageUrl: ${newImageUrl}`);
+    console.log(`mobileNumber: ${mobileNumber}`);
+    console.log(`currentPagePath: ${currentPagePath}`);
+
+    // Get available images from current page
+    const availableImages = await getAvailableImages(mobileNumber, currentPagePath);
+    
+    if (availableImages.length === 0) {
+      return NextResponse.json({
+        error: 'No images found in current page',
+        type: 'no_images'
+      });
+    }
+
+    console.log(`🔍 Found ${availableImages.length} images in current page`);
+
+    // Smart replacement logic
+    let targetImageUrl = null;
+    let replacedImageInfo = null;
+
+    if (oldImagePath) {
+      // Try to find exact match first
+      const exactMatch = availableImages.find(img => img.url === oldImagePath);
+      if (exactMatch) {
+        targetImageUrl = exactMatch.url;
+        replacedImageInfo = exactMatch;
+        console.log(`✅ Found exact match: ${exactMatch.url}`);
+      } else {
+        // Try to find partial match (without query parameters)
+        const cleanOldPath = oldImagePath.replace(/\?.*$/, '');
+        const partialMatch = availableImages.find(img => img.url.replace(/\?.*$/, '') === cleanOldPath);
+        if (partialMatch) {
+          targetImageUrl = partialMatch.url;
+          replacedImageInfo = partialMatch;
+          console.log(`✅ Found partial match: ${partialMatch.url}`);
+        }
+      }
+    }
+
+    // If no specific match found, use smart fallback
+    if (!targetImageUrl) {
+      if (availableImages.length === 1) {
+        // Only one image - replace it
+        targetImageUrl = availableImages[0].url;
+        replacedImageInfo = availableImages[0];
+        console.log(`✅ Single image found, replacing: ${availableImages[0].url}`);
+      } else {
+        // Multiple images - replace the first one
+        targetImageUrl = availableImages[0].url;
+        replacedImageInfo = availableImages[0];
+        console.log(`✅ Multiple images found, replacing first: ${availableImages[0].url}`);
+      }
+    }
+
+    // Perform the replacement
+    const updatedFiles = await updateImageReferencesInHTML(mobileNumber, targetImageUrl, newImageUrl);
 
     return NextResponse.json({
-      message: 'Image URL updated successfully in HTML files',
+      message: `Successfully replaced image in ${updatedFiles.length} file(s)`,
       imageUrl: newImageUrl,
-      imagePath: oldImagePath,
+      oldImagePath: targetImageUrl,
       updatedFiles: updatedFiles,
       updatedFilesCount: updatedFiles.length,
-      details: updatedFiles.length > 0 
-        ? `Successfully updated ${updatedFiles.length} HTML file(s): ${updatedFiles.map(f => f.split('/').pop()).join(', ')}`
-        : 'No HTML files needed updates (image path not found in any files)',
-      type: 'url'
+      replacedImage: replacedImageInfo,
+      type: 'direct_replace',
+      details: availableImages.length === 1 
+        ? 'Replaced the only image on the page'
+        : `Replaced ${replacedImageInfo?.alt || 'image'} from ${availableImages.length} available images`
     });
+
   } catch (error) {
     console.error('Image URL update error:', error);
     return NextResponse.json(
@@ -158,122 +216,258 @@ async function updateImageReferencesInHTML(mobileNumber: string, oldImagePath: s
 
 // Helper function to replace image references in HTML content
 function replaceImageReferences(htmlContent: string, oldImagePath: string, newImageUrl: string): string {
-  console.log(`Replacing image references: ${oldImagePath} -> ${newImageUrl}`);
+  console.log(`\n=== Enhanced image replacement ===`);
+  console.log(`Target image: ${oldImagePath}`);
+  console.log(`New image URL: ${newImageUrl}`);
   console.log(`HTML content length: ${htmlContent.length} characters`);
   
-  // Log a snippet of the HTML content to see what we're working with
-  const snippet = htmlContent.substring(0, 500);
-  console.log(`HTML snippet: ${snippet}...`);
-  
-  // Create regex patterns to match different ways the image might be referenced
-  const patterns = [
-    // src="imagepath" (exact match)
-    new RegExp(`src=["']${escapeRegExp(oldImagePath)}["']`, 'gi'),
-    // src="./imagepath" (relative path with ./)
-    new RegExp(`src=["']\\.\/${escapeRegExp(oldImagePath)}["']`, 'gi'),
-    // src="/imagepath" (absolute path with /)
-    new RegExp(`src=["']\/${escapeRegExp(oldImagePath)}["']`, 'gi'),
-    // Background images in CSS - different formats
-    new RegExp(`background-image:\\s*url\\(["']?${escapeRegExp(oldImagePath)}["']?\\)`, 'gi'),
-    new RegExp(`background:\\s*url\\(["']?${escapeRegExp(oldImagePath)}["']?\\)`, 'gi'),
-    // CSS background with relative paths
-    new RegExp(`background-image:\\s*url\\(["']?\\.\/${escapeRegExp(oldImagePath)}["']?\\)`, 'gi'),
-    new RegExp(`background:\\s*url\\(["']?\\.\/${escapeRegExp(oldImagePath)}["']?\\)`, 'gi'),
-    // CSS background with absolute paths
-    new RegExp(`background-image:\\s*url\\(["']?\/${escapeRegExp(oldImagePath)}["']?\\)`, 'gi'),
-    new RegExp(`background:\\s*url\\(["']?\/${escapeRegExp(oldImagePath)}["']?\\)`, 'gi'),
-    // Handle srcset attributes for responsive images
-    new RegExp(`srcset=["'][^"']*${escapeRegExp(oldImagePath)}[^"']*["']`, 'gi'),
-    // Handle data attributes that might contain image paths
-    new RegExp(`data-[a-zA-Z-]*=["'][^"']*${escapeRegExp(oldImagePath)}[^"']*["']`, 'gi'),
-  ];
-
   let updatedContent = htmlContent;
   let replacementsMade = 0;
   
-  // Replace all patterns
-  patterns.forEach((pattern, index) => {
-    const patternType = getPatternType(index);
-    const matches = updatedContent.match(pattern);
+  // Find all img tags with src attributes
+  const imgTagPattern = /<img[^>]*src=["']([^"']+)["'][^>]*>/gi;
+  const imgMatches = [...htmlContent.matchAll(imgTagPattern)];
+  
+  console.log(`Found ${imgMatches.length} img tags in HTML`);
+  
+  // Clean the old image path to handle cache busting and URL variations
+  const cleanOldPath = oldImagePath.replace(/\?v=\d+/, '').replace(/\?.*$/, '');
+  const oldImageFileName = cleanOldPath.split('/').pop() || '';
+  const oldImageUuid = oldImageFileName.split('.')[0];
+  
+  console.log(`🔍 Cleaned old path: ${cleanOldPath}`);
+  console.log(`🔍 Old image filename: ${oldImageFileName}`);
+  console.log(`🔍 Old image UUID: ${oldImageUuid}`);
+  
+  // If there's exactly one image, replace it regardless of the old URL
+  if (imgMatches.length === 1) {
+    const fullMatch = imgMatches[0][0];
+    const currentSrc = imgMatches[0][1];
     
-    console.log(`Testing pattern ${index} (${patternType}): ${pattern.source}`);
+    console.log(`Single image found with src: ${currentSrc}`);
+    console.log(`Replacing with: ${newImageUrl}`);
     
-    if (matches && matches.length > 0) {
-      console.log(`Found ${matches.length} matches for pattern ${index} (${patternType})`);
-      console.log(`Matches:`, matches);
+    // Replace the src attribute in this img tag
+    const newImgTag = fullMatch.replace(
+      /src=["'][^"']+["']/i,
+      `src="${newImageUrl}"`
+    );
+    
+    updatedContent = updatedContent.replace(fullMatch, newImgTag);
+    replacementsMade = 1;
+    
+    console.log(`✅ Replaced single image successfully`);
+  } else if (imgMatches.length > 1) {
+    // Multiple images - try to find a match with enhanced logic
+    console.log(`Multiple images found, looking for matches...`);
+    
+    for (let i = 0; i < imgMatches.length; i++) {
+      const fullMatch = imgMatches[i][0];
+      const currentSrc = imgMatches[i][1];
       
-      if (pattern.source.includes('background')) {
-        // For CSS background images
-        updatedContent = updatedContent.replace(pattern, (match) => {
-          replacementsMade++;
-          const replacement = match.includes('background-image:') 
-            ? `background-image: url("${newImageUrl}")` 
-            : `background: url("${newImageUrl}")`;
-          console.log(`Background replacement ${replacementsMade}: ${match} -> ${replacement}`);
-          return replacement;
-        });
-      } else if (pattern.source.includes('srcset')) {
-        // For srcset attributes, replace only the specific image path
-        updatedContent = updatedContent.replace(pattern, (match) => {
-          replacementsMade++;
-          const replacement = match.replace(new RegExp(escapeRegExp(oldImagePath), 'g'), newImageUrl);
-          console.log(`Srcset replacement ${replacementsMade}: ${match} -> ${replacement}`);
-          return replacement;
-        });
-      } else if (pattern.source.includes('data-')) {
-        // For data attributes, replace only the specific image path
-        updatedContent = updatedContent.replace(pattern, (match) => {
-          replacementsMade++;
-          const replacement = match.replace(new RegExp(escapeRegExp(oldImagePath), 'g'), newImageUrl);
-          console.log(`Data attribute replacement ${replacementsMade}: ${match} -> ${replacement}`);
-          return replacement;
-        });
-      } else {
-        // For img src attributes
-        updatedContent = updatedContent.replace(pattern, (match) => {
-          replacementsMade++;
-          const replacement = `src="${newImageUrl}"`;
-          console.log(`Src replacement ${replacementsMade}: ${match} -> ${replacement}`);
-          return replacement;
-        });
+      console.log(`Image ${i + 1}: ${currentSrc}`);
+      
+      // Clean current src for comparison
+      const cleanCurrentSrc = currentSrc.replace(/\?v=\d+/, '').replace(/\?.*$/, '');
+      const currentFileName = cleanCurrentSrc.split('/').pop() || '';
+      const currentUuid = currentFileName.split('.')[0];
+      
+      // Enhanced matching logic
+      const isExactMatch = cleanCurrentSrc === cleanOldPath;
+      const isImageRepoMatch = currentSrc.includes('imagerepo/') && 
+                               oldImagePath.includes('imagerepo/');
+      const isFileNameMatch = currentFileName === oldImageFileName;
+      const isUuidMatch = currentUuid === oldImageUuid && currentUuid.length > 10;
+      const isPartialMatch = currentSrc.includes(oldImageUuid) && oldImageUuid.length > 10;
+      
+      console.log(`🔍 Matching analysis for image ${i + 1}:`);
+      console.log(`  - Exact match: ${isExactMatch}`);
+      console.log(`  - ImageRepo match: ${isImageRepoMatch}`);
+      console.log(`  - Filename match: ${isFileNameMatch}`);
+      console.log(`  - UUID match: ${isUuidMatch}`);
+      console.log(`  - Partial match: ${isPartialMatch}`);
+      
+      if (isExactMatch || isImageRepoMatch || isFileNameMatch || isUuidMatch || isPartialMatch) {
+        console.log(`📍 Found matching image: ${currentSrc}`);
+        
+        const newImgTag = fullMatch.replace(
+          /src=["'][^"']+["']/i,
+          `src="${newImageUrl}"`
+        );
+        
+        updatedContent = updatedContent.replace(fullMatch, newImgTag);
+        replacementsMade++;
+        
+        console.log(`✅ Replaced matching image`);
+        break; // Only replace the first match
       }
-    } else {
-      console.log(`No matches found for pattern ${index} (${patternType})`);
     }
-  });
+    
+    // If no match found, but we have imagerepo images, try to replace the first one
+    if (replacementsMade === 0 && newImageUrl.includes('imagerepo/')) {
+      console.log(`⚠️ No exact match found, checking for any imagerepo images to replace...`);
+      
+      for (let i = 0; i < imgMatches.length; i++) {
+        const fullMatch = imgMatches[i][0];
+        const currentSrc = imgMatches[i][1];
+        
+        if (currentSrc.includes('imagerepo/')) {
+          console.log(`🔄 Replacing first imagerepo image found: ${currentSrc}`);
+          
+          const newImgTag = fullMatch.replace(
+            /src=["'][^"']+["']/i,
+            `src="${newImageUrl}"`
+          );
+          
+          updatedContent = updatedContent.replace(fullMatch, newImgTag);
+          replacementsMade++;
+          
+          console.log(`✅ Replaced first imagerepo image as fallback`);
+          break;
+        }
+      }
+    }
+    
+    // ULTIMATE FALLBACK: If still no replacements and we have images, ask user to specify
+    if (replacementsMade === 0 && imgMatches.length > 0) {
+      console.log(`🤔 No imagerepo images found, but ${imgMatches.length} total images exist.`);
+      console.log(`Available images:`);
+      imgMatches.forEach((match, index) => {
+        console.log(`  ${index + 1}. ${match[1]}`);
+      });
+      
+      // For now, we'll inform the user but not make automatic replacements
+      // In the future, we could add a user prompt to select which image to replace
+      console.log(`💡 Suggestion: If you want to replace one of these images, please select it specifically.`);
+    }
+  } else {
+    console.log(`⚠️ No img tags found in HTML`);
+  }
 
+  console.log(`\n=== Replacement Summary ===`);
   console.log(`Total replacements made: ${replacementsMade}`);
   
   if (replacementsMade > 0) {
-    console.log(`Content changed. New length: ${updatedContent.length} characters`);
+    console.log(`✅ Content updated successfully`);
   } else {
-    console.log(`No changes made to content.`);
+    console.log(`❌ No changes made to content`);
   }
   
   return updatedContent;
 }
 
-// Helper function to get pattern type for logging
-function getPatternType(index: number): string {
-  const types = [
-    'src exact match',
-    'src with ./ prefix',
-    'src with / prefix',
-    'background-image url',
-    'background url',
-    'background-image url with ./',
-    'background url with ./',
-    'background-image url with /',
-    'background url with /',
-    'srcset attribute',
-    'data attributes'
-  ];
-  return types[index] || 'unknown';
+// Helper function to extract possible paths from a URL
+function extractPossiblePaths(urlPath: string): string[] {
+  const paths: string[] = [];
+  
+  console.log(`Extracting paths from URL: ${urlPath}`);
+  
+  // Add the original path
+  paths.push(urlPath);
+  
+  // If it's a full URL, extract just the path part
+  if (urlPath.startsWith('http')) {
+    try {
+      const url = new URL(urlPath);
+      paths.push(url.pathname);
+      paths.push(url.pathname.substring(1)); // Remove leading slash
+      console.log(`Extracted URL pathname: ${url.pathname}`);
+    } catch (e) {
+      console.log('Failed to parse URL:', urlPath);
+    }
+  }
+  
+  // If it has query parameters, add version without them
+  if (urlPath.includes('?')) {
+    const withoutQuery = urlPath.split('?')[0];
+    paths.push(withoutQuery);
+    console.log(`Extracted path without query: ${withoutQuery}`);
+  }
+  
+  // Add version with and without leading slash
+  if (urlPath.startsWith('/')) {
+    paths.push(urlPath.substring(1));
+  } else {
+    paths.push('/' + urlPath);
+  }
+  
+  // Add common prefixes
+  if (!urlPath.startsWith('./') && !urlPath.startsWith('/')) {
+    paths.push('./' + urlPath);
+    paths.push('../' + urlPath);
+  }
+  
+  // Remove duplicates and empty paths
+  const uniquePaths = [...new Set(paths)].filter(path => path && path.length > 0);
+  console.log(`Final unique paths to search:`, uniquePaths);
+  
+  return uniquePaths;
 }
 
 // Helper function to escape special regex characters
 function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Helper function to get all available images from current page only
+async function getAvailableImages(mobileNumber: string, currentPagePath?: string): Promise<Array<{url: string, file: string, alt: string}>> {
+  const allImages: Array<{url: string, file: string, alt: string}> = [];
+  
+  try {
+    console.log(`🔍 Scanning for available images in current page only...`);
+    console.log(`Current page path: ${currentPagePath}`);
+    
+    // If no current page path provided, default to index.html
+    const targetFile = currentPagePath || 'index.html';
+    
+    // Construct the full S3 key for the current page
+    const pageKey = targetFile.startsWith('sites/') 
+      ? targetFile 
+      : `sites/${mobileNumber}/${targetFile}`;
+    
+    console.log(`📁 Scanning only file: ${pageKey}`);
+
+    try {
+      // Get the current page content
+      const getCommand = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: pageKey,
+      });
+      
+      const getResponse = await s3Client.send(getCommand);
+      const content = await streamToString(getResponse.Body);
+      
+      // Extract images from this file
+      const imgTagPattern = /<img[^>]*src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'])?[^>]*>/gi;
+      const imgMatches = [...content.matchAll(imgTagPattern)];
+      
+      for (const match of imgMatches) {
+        const url = match[1];
+        const alt = match[2] || 'No alt text';
+        const fileName = pageKey.split('/').pop() || pageKey;
+        
+        allImages.push({
+          url: url,
+          file: fileName,
+          alt: alt
+        });
+      }
+      
+      console.log(`📷 Found ${imgMatches.length} images in current page: ${pageKey}`);
+      
+    } catch (fileError) {
+      console.error(`❌ Error reading current page ${pageKey}:`, fileError);
+      // If the specific page is not found, return empty array
+      return [];
+    }
+    
+    console.log(`✅ Total images found in current page: ${allImages.length}`);
+    return allImages;
+    
+  } catch (error) {
+    console.error('❌ Error scanning for images:', error);
+    throw error;
+  }
 }
 
 // Helper function to convert stream to string

@@ -3,6 +3,19 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { connectMongoose } from '@/lib/db';
 import Image from '@/models/Image';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { checkResourceAccess } from '@/lib/rbac';
+
+// Initialize S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'ap-south-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'dt-web-sites';
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,6 +113,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check admin access - only admins can delete images from repository
+    const userRole = session.user.role || 'user';
+    if (userRole !== 'admin') {
+      return NextResponse.json({ 
+        error: 'Access denied. Only administrators can delete images from the repository.' 
+      }, { status: 403 });
+    }
+
     // Get request body
     const body = await request.json();
     const { imageIds } = body;
@@ -113,7 +134,7 @@ export async function DELETE(request: NextRequest) {
     // Connect to database
     await connectMongoose();
 
-    // Find images to delete (any user can delete any image)
+    // Find images to delete
     const imagesToDelete = await Image.find({
       _id: { $in: imageIds }
     });
@@ -124,20 +145,63 @@ export async function DELETE(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // TODO: Delete from S3 as well
-    // const { S3Client, DeleteObjectsCommand } = await import('@aws-sdk/client-s3');
-    // ... implement S3 deletion
+    console.log(`Admin ${session.user.mobileNumber} attempting to delete ${imagesToDelete.length} image(s)`);
 
-    // Delete from database (any authenticated user can delete any image)
+    // Track deletion results
+    const deletionResults = {
+      s3Deleted: 0,
+      s3Errors: [] as string[],
+      dbDeleted: 0,
+      total: imagesToDelete.length
+    };
+
+    // Delete from S3 first
+    for (const image of imagesToDelete) {
+      try {
+        if (image.s3Key) {
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: image.s3Key,
+          });
+          
+          await s3Client.send(deleteCommand);
+          deletionResults.s3Deleted++;
+          console.log(`Successfully deleted S3 object: ${image.s3Key}`);
+        }
+      } catch (s3Error) {
+        console.error(`Failed to delete S3 object ${image.s3Key}:`, s3Error);
+        deletionResults.s3Errors.push(`${image.name}: ${s3Error instanceof Error ? s3Error.message : 'S3 deletion failed'}`);
+      }
+    }
+
+    // Delete from database
     const deleteResult = await Image.deleteMany({
       _id: { $in: imagesToDelete.map(img => img._id) }
     });
 
-    return NextResponse.json({
+    deletionResults.dbDeleted = deleteResult.deletedCount;
+
+    // Prepare response
+    const responseData: any = {
       success: true,
-      deleted: deleteResult.deletedCount,
-      message: `${deleteResult.deletedCount} image(s) deleted successfully`
-    });
+      deleted: deletionResults.dbDeleted,
+      message: `${deletionResults.dbDeleted} image(s) deleted from database`,
+      details: {
+        s3Deleted: deletionResults.s3Deleted,
+        dbDeleted: deletionResults.dbDeleted,
+        total: deletionResults.total
+      }
+    };
+
+    // Include S3 errors if any
+    if (deletionResults.s3Errors.length > 0) {
+      responseData.warnings = deletionResults.s3Errors;
+      responseData.message += `, but some S3 files could not be deleted`;
+    }
+
+    console.log(`Deletion completed: ${deletionResults.dbDeleted} DB records, ${deletionResults.s3Deleted} S3 objects`);
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('Error deleting images:', error);

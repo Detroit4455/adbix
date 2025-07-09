@@ -50,16 +50,26 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const { maxImagesPerUser } = await request.json();
+    const { maxImagesPerUser, allowNewUserRegistration } = await request.json();
 
     // Validate input
-    if (typeof maxImagesPerUser !== 'number' || maxImagesPerUser < 1 || maxImagesPerUser > 1000) {
+    if (maxImagesPerUser !== undefined && (typeof maxImagesPerUser !== 'number' || maxImagesPerUser < 1 || maxImagesPerUser > 1000)) {
       return NextResponse.json({ 
         error: 'Max images per user must be a number between 1 and 1000' 
       }, { status: 400 });
     }
 
-    const updatedSettings = await ServerSettings.updateSettings({ maxImagesPerUser });
+    if (allowNewUserRegistration !== undefined && typeof allowNewUserRegistration !== 'boolean') {
+      return NextResponse.json({ 
+        error: 'Allow new user registration must be a boolean value' 
+      }, { status: 400 });
+    }
+
+    const updateData: any = {};
+    if (maxImagesPerUser !== undefined) updateData.maxImagesPerUser = maxImagesPerUser;
+    if (allowNewUserRegistration !== undefined) updateData.allowNewUserRegistration = allowNewUserRegistration;
+
+    const updatedSettings = await ServerSettings.updateSettings(updateData);
     return NextResponse.json(updatedSettings);
 
   } catch (error) {
