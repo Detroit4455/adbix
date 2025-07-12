@@ -29,7 +29,7 @@ export default function Home() {
     },
     {
       icon: ServerIcon,
-      title: 'S3 Hosting',
+      title: 'Web Hosting',
       description: 'Reliable Amazon S3 hosting with global CDN and 99.9% uptime guarantee.',
       color: 'from-green-500 to-emerald-600'
     },
@@ -328,7 +328,7 @@ export default function Home() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Features</h3>
               <div className="space-y-2">
-                <span className="block text-gray-400">S3 Hosting</span>
+                <span className="block text-gray-400">Web Hosting</span>
                 <span className="block text-gray-400">Widget Library</span>
                 <span className="block text-gray-400">Image Management</span>
                 <span className="block text-gray-400">SSL Security</span>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import CodeEditor from './CodeEditor';
+import LiveEditModal from './LiveEditModal';
 import { createPortal } from 'react-dom';
 
 interface S3FileInfo {
@@ -34,6 +35,10 @@ export default function S3FileManager() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [liveEditModal, setLiveEditModal] = useState<{isOpen: boolean, filePath: string}>({
+    isOpen: false,
+    filePath: ''
+  });
   
 
 
@@ -626,28 +631,58 @@ Start writing your markdown content here.
                   {formatDate(file.lastModified)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div className="flex space-x-4">
+                  <div className="flex space-x-2">
                     {!file.isDirectory && (
-                      <button
-                        onClick={() => {
-                          if (file.name.endsWith('.html')) {
-                            // Open HTML files in live editor
-                            const editUrl = `/widgets/live-edit/${session?.user?.mobileNumber}/${file.path}`;
-                            window.open(editUrl, '_blank');
-                          } else {
-                            // Open other files directly
-                          const fileUrl = `/site/${session?.user?.mobileNumber}/${file.path}`;
+                      <>
+                        {/* Preview Button */}
+                        <button
+                          onClick={() => {
+                            const fileUrl = `/site/${session?.user?.mobileNumber}/${file.path}`;
                             window.open(fileUrl, '_blank');
-                          }
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                        title={file.name.endsWith('.html') ? "Preview in live editor" : "Preview file in new tab"}
-                      >
-                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        Preview
-                      </button>
+                          }}
+                          className="text-blue-600 hover:text-blue-900 px-2 py-1 text-xs border border-blue-200 rounded hover:bg-blue-50"
+                          title="Preview file in new tab"
+                        >
+                          <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Preview
+                        </button>
+
+                        {/* Live Edit Button - Only for HTML files */}
+                        {file.name.endsWith('.html') && (
+                          <button
+                            onClick={() => {
+                              setLiveEditModal({
+                                isOpen: true,
+                                filePath: file.path
+                              });
+                            }}
+                            className="text-green-600 hover:text-green-900 px-2 py-1 text-xs border border-green-200 rounded hover:bg-green-50"
+                            title="Open in live editor for visual editing"
+                          >
+                            <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-1.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Live Edit
+                          </button>
+                        )}
+
+                        {/* Edit HTML Button - For editable files */}
+                        {isEditableFile(file) && (
+                          <button
+                            onClick={() => setEditingFile(file.path)}
+                            className="text-purple-600 hover:text-purple-900 px-2 py-1 text-xs border border-purple-200 rounded hover:bg-purple-50"
+                            title="Edit file content with code editor"
+                          >
+                            <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                            Edit HTML
+                          </button>
+                        )}
+                      </>
                     )}
                     {(file.isDirectory || file.type === 'directory') ? (
                       <button
@@ -706,8 +741,13 @@ Start writing your markdown content here.
         document.body
       )}
 
-
-
+      {/* Live Edit Modal */}
+      <LiveEditModal
+        isOpen={liveEditModal.isOpen}
+        onClose={() => setLiveEditModal({isOpen: false, filePath: ''})}
+        filePath={liveEditModal.filePath}
+        mobileNumber={session?.user?.mobileNumber || ''}
+      />
 
     </div>
   );

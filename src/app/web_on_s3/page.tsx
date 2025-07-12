@@ -123,10 +123,10 @@ export default function WebOnS3Page() {
               <div className="flex-1">
                 <div className="flex items-center mb-4">
                   <ServerIcon className="h-10 w-10 mr-3" />
-                  <h1 className="text-3xl md:text-4xl font-bold">S3 Website Hosting</h1>
+                  <h1 className="text-3xl md:text-4xl font-bold">Website Hosting</h1>
                 </div>
                 <p className="text-indigo-100 text-lg mb-6 max-w-2xl">
-                  Deploy your static websites to Amazon S3 with automatic scaling, high availability, and global CDN distribution
+                  Deploy your websites to adbix with automatic scaling, high availability, and global CDN distribution
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link 
@@ -219,7 +219,7 @@ export default function WebOnS3Page() {
                     <CloudArrowUpIcon className="h-16 w-16 text-indigo-500 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Your Website</h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Upload your ZIP file containing your website files. We'll automatically extract and deploy it to S3 with proper structure validation.
+                      Upload your ZIP file containing your website files. We'll automatically extract and deploy it to adbix with proper structure validation.
                     </p>
                   </div>
                   <S3WebsiteUpload />
@@ -260,9 +260,9 @@ export default function WebOnS3Page() {
                 <div className="space-y-6">
                   <div className="text-center mb-8">
                     <FolderIcon className="h-16 w-16 text-indigo-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">S3 File Manager</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">adbix File Manager</h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Manage your website files directly on S3. Upload, delete, organize, and modify files with our powerful file manager.
+                      Manage your website files directly on adbix. Upload, delete, organize, and modify files with our powerful file manager.
                     </p>
                   </div>
                   <S3FileManager />

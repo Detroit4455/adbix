@@ -409,43 +409,103 @@ export default function LiveEditPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Fixed Header with Controls */}
-      <div className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-50">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-lg font-semibold text-gray-900">
-              Editing: {filePath}
-            </h1>
+      {/* Enhanced Fixed Header with Controls */}
+      <div className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+        {/* Top bar with file info and close button */}
+        <div className="flex items-center justify-between px-6 py-2 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <svg className="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h1 className="text-sm font-medium text-gray-700">
+                {filePath}
+              </h1>
+            </div>
             {(isLiveEditing || isCodeEditing) && (
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-green-600 font-medium">
-                  {isLiveEditing ? 'Live Editing Mode' : 'Code Editing Mode'}
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-600 font-medium px-2 py-1 bg-green-50 rounded-full">
+                  {isLiveEditing ? 'Live Editing Active' : 'Code Editing Active'}
                 </span>
               </div>
             )}
           </div>
           
-          <div className="flex items-center space-x-3">
-            {error && (
-              <div className="text-red-600 text-sm">{error}</div>
+          <div className="flex items-center space-x-2">
+            {!isLiveEditing && !isCodeEditing && (
+              <button
+                onClick={() => setUseIframeFallback(!useIframeFallback)}
+                className={`px-3 py-1 text-xs rounded transition-colors ${
+                  useIframeFallback 
+                    ? 'bg-green-100 text-green-700 border border-green-300' 
+                    : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                }`}
+                title="Switch between direct content loading and iframe mode for better asset compatibility"
+              >
+                {useIframeFallback ? 'Direct Mode' : 'Iframe Mode'}
+              </button>
             )}
-            {success && (
-              <div className="text-green-600 text-sm">{success}</div>
-            )}
+            <button
+              onClick={() => window.close()}
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              title="Close Window"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Main navigation bar */}
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center space-x-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Live Editor
+            </h2>
             
+            {/* Status Messages */}
+            <div className="flex items-center space-x-3">
+              {error && (
+                <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 px-3 py-1 rounded-full">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="flex items-center space-x-2 text-green-600 text-sm bg-green-50 px-3 py-1 rounded-full">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {success}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Control Buttons */}
+          <div className="flex items-center space-x-2">
             {!isLiveEditing && !isCodeEditing && (
               <>
                 <button
                   onClick={handleStartLiveEdit}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm"
                 >
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-1.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
                   Live Edit
                 </button>
                 <button
                   onClick={() => setIsCodeEditing(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm"
                 >
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
                   Edit HTML
                 </button>
               </>
@@ -455,45 +515,39 @@ export default function LiveEditPage() {
               <>
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                  className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors shadow-sm"
                 >
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving || (!hasChanges && isLiveEditing)}
-                  className={`px-4 py-2 rounded transition-colors ${
+                  className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 shadow-sm ${
                     isSaving
                       ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                       : hasChanges || isCodeEditing
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-green-400 text-white cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
+                      : 'bg-green-300 text-white cursor-not-allowed'
                   }`}
                 >
-                  {isSaving ? 'Saving...' : hasChanges || isCodeEditing ? 'Save Changes' : 'No Changes'}
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      {hasChanges || isCodeEditing ? 'Save Changes' : 'No Changes'}
+                    </>
+                  )}
                 </button>
               </>
-            )}
-            
-            <button
-              onClick={() => window.close()}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-            >
-              Close
-            </button>
-            
-            {!isLiveEditing && !isCodeEditing && (
-              <button
-                onClick={() => setUseIframeFallback(!useIframeFallback)}
-                className={`px-3 py-2 text-sm rounded transition-colors ${
-                  useIframeFallback 
-                    ? 'bg-green-100 text-green-700 border border-green-300' 
-                    : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                }`}
-                title="Switch between direct content loading and iframe mode for better asset compatibility"
-              >
-                {useIframeFallback ? 'Direct Mode' : 'Iframe Mode'}
-              </button>
             )}
           </div>
         </div>
