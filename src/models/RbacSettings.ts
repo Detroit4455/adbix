@@ -147,6 +147,15 @@ rbacSettingsSchema.statics.initializeDefaultSettings = async function(): Promise
               user: true,
               manager: true
             }
+          },
+          {
+            resource: 'upload-website',
+            roles: {
+              admin: true,
+              devops: true,
+              user: false,
+              manager: false
+            }
           }
         ]
       });

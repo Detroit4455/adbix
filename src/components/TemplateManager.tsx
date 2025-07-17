@@ -699,9 +699,7 @@ export default function TemplateManager() {
                       <div className="flex space-x-2">
                         {template.metadata.hasIndexHtml && (
                           <a
-                            href={`https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'dt-web-sites'}.s3.${process.env.NEXT_PUBLIC_AWS_REGION || 'ap-south-1'}.amazonaws.com/web-templates/${template.templateId}/index.html`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href={`/template-preview/${template.templateId}`}
                             className="text-blue-600 hover:text-blue-900"
                           >
                             Preview

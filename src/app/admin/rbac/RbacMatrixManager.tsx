@@ -19,7 +19,7 @@ export default function RbacMatrixManager({ initialMatrix }: RbacMatrixManagerPr
   const roles = ['admin', 'devops', 'user', 'manager'];
 
   // Available resources - add more resources here as needed
-  const availableResources = ['website-manager', 'image-repo'];
+  const availableResources = ['website-manager', 'image-repo', 'my-images', 'upload-website'];
   
   // Handle toggling a role's access to a resource
   const handleToggleAccess = (resourceName: string, roleName: string) => {

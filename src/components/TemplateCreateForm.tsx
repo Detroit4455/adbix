@@ -12,6 +12,8 @@ interface TemplateFormData {
   previewImage: string;
   isActive: boolean;
   isPublic: boolean;
+  visibility: 'public' | 'custom';
+  customMobileNumber: string;
 }
 
 interface TemplateCreateFormProps {
@@ -32,7 +34,9 @@ export default function TemplateCreateForm({ onSuccess }: TemplateCreateFormProp
     tags: '',
     previewImage: '',
     isActive: true,
-    isPublic: true
+    isPublic: true,
+    visibility: 'public',
+    customMobileNumber: ''
   });
 
   // Business categories and template types
@@ -53,9 +57,18 @@ export default function TemplateCreateForm({ onSuccess }: TemplateCreateFormProp
     setLoading(true);
 
     try {
+      // Validate custom template fields
+      if (formData.visibility === 'custom' && !formData.customMobileNumber.trim()) {
+        setError('Mobile number is required for custom templates');
+        setLoading(false);
+        return;
+      }
+
       const payload = { 
         ...formData, 
-        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t) 
+        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+        isPublic: formData.visibility === 'public',
+        customMobileNumber: formData.visibility === 'custom' ? formData.customMobileNumber.trim() : null
       };
 
       const response = await fetch('/api/admin/templates', {
@@ -95,7 +108,9 @@ export default function TemplateCreateForm({ onSuccess }: TemplateCreateFormProp
       tags: '',
       previewImage: '',
       isActive: true,
-      isPublic: true
+      isPublic: true,
+      visibility: 'public',
+      customMobileNumber: ''
     });
   };
 
@@ -234,8 +249,71 @@ export default function TemplateCreateForm({ onSuccess }: TemplateCreateFormProp
           <p className="text-xs text-gray-500 mt-1">Separate tags with commas</p>
         </div>
 
+        {/* Template Visibility */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Template Visibility *
+            </label>
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  id="visibility-public"
+                  name="visibility"
+                  value="public"
+                  checked={formData.visibility === 'public'}
+                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value as 'public' | 'custom', customMobileNumber: '' })}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
+                />
+                <label htmlFor="visibility-public" className="ml-3 block text-sm text-gray-700">
+                  <span className="font-medium">Public</span>
+                  <span className="block text-xs text-gray-500">Visible to all users</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  id="visibility-custom"
+                  name="visibility"
+                  value="custom"
+                  checked={formData.visibility === 'custom'}
+                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value as 'public' | 'custom' })}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
+                />
+                <label htmlFor="visibility-custom" className="ml-3 block text-sm text-gray-700">
+                  <span className="font-medium">Custom</span>
+                  <span className="block text-xs text-gray-500">Visible only to specific user</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Mobile Number Field */}
+          {formData.visibility === 'custom' && (
+            <div className="ml-7 mt-3">
+              <label htmlFor="customMobileNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                User Mobile Number *
+              </label>
+              <input
+                type="tel"
+                id="customMobileNumber"
+                value={formData.customMobileNumber}
+                onChange={(e) => setFormData({ ...formData, customMobileNumber: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Enter mobile number (e.g., 9876543210)"
+                required={formData.visibility === 'custom'}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Template will only be visible to this user
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Settings */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-4">
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -246,19 +324,6 @@ export default function TemplateCreateForm({ onSuccess }: TemplateCreateFormProp
             />
             <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
               Active (template can be used)
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isPublic"
-              checked={formData.isPublic}
-              onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-700">
-              Public (visible to all users)
             </label>
           </div>
         </div>

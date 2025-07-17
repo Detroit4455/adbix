@@ -55,6 +55,24 @@ export default async function RbacManagementPage() {
           user: false,
           manager: false
         }
+      },
+      {
+        resource: 'my-images',
+        roles: {
+          admin: true,
+          devops: true,
+          user: true,
+          manager: true
+        }
+      },
+      {
+        resource: 'upload-website',
+        roles: {
+          admin: true,
+          devops: true,
+          user: false,
+          manager: false
+        }
       }
     ];
     

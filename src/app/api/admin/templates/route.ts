@@ -117,13 +117,30 @@ export async function POST(request: NextRequest) {
       tags,
       previewImage,
       isActive = true,
-      isPublic = true
+      isPublic = true,
+      customMobileNumber = null
     } = body;
 
     // Validate required fields
     if (!name || !description || !businessCategory || !templateType) {
       return NextResponse.json(
         { error: 'Name, description, business category, and template type are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate custom template fields
+    if (!isPublic && !customMobileNumber) {
+      return NextResponse.json(
+        { error: 'Mobile number is required for custom templates' },
+        { status: 400 }
+      );
+    }
+
+    // Validate mobile number format if provided
+    if (customMobileNumber && !/^\d{10}$/.test(customMobileNumber)) {
+      return NextResponse.json(
+        { error: 'Mobile number must be 10 digits' },
         { status: 400 }
       );
     }
@@ -162,6 +179,7 @@ export async function POST(request: NextRequest) {
       previewImage,
       isActive,
       isPublic,
+      customMobileNumber: customMobileNumber ? customMobileNumber.trim() : null,
       createdBy: session.user.mobileNumber,
       metadata: {
         hasIndexHtml: false,
@@ -226,12 +244,29 @@ export async function PUT(request: NextRequest) {
       tags,
       previewImage,
       isActive,
-      isPublic
+      isPublic,
+      customMobileNumber
     } = body;
 
     if (!templateId) {
       return NextResponse.json(
         { error: 'Template ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate custom template fields if updating visibility
+    if (isPublic === false && !customMobileNumber) {
+      return NextResponse.json(
+        { error: 'Mobile number is required for custom templates' },
+        { status: 400 }
+      );
+    }
+
+    // Validate mobile number format if provided
+    if (customMobileNumber && !/^\d{10}$/.test(customMobileNumber)) {
+      return NextResponse.json(
+        { error: 'Mobile number must be 10 digits' },
         { status: 400 }
       );
     }
@@ -254,6 +289,9 @@ export async function PUT(request: NextRequest) {
     if (previewImage !== undefined) template.previewImage = previewImage;
     if (isActive !== undefined) template.isActive = isActive;
     if (isPublic !== undefined) template.isPublic = isPublic;
+    if (customMobileNumber !== undefined) {
+      template.customMobileNumber = customMobileNumber ? customMobileNumber.trim() : null;
+    }
 
     await template.save();
 

@@ -30,7 +30,7 @@ export default function Home() {
     {
       icon: ServerIcon,
       title: 'Web Hosting',
-      description: 'Reliable Amazon S3 hosting with global CDN and 99.9% uptime guarantee.',
+      description: 'Reliable web hosting with global CDN',
       color: 'from-green-500 to-emerald-600'
     },
     {
@@ -113,15 +113,14 @@ export default function Home() {
                 </div>
                 
                 <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl xl:text-7xl">
-                  <span className="block">Build your</span>
+                  <span className="block">We build,</span>
                   <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                    website easily
+                    you focus on your business
                   </span>
                 </h1>
                 
                 <p className="mt-6 text-lg text-gray-600 sm:text-xl max-w-3xl">
-                  Create, deploy, and manage professional websites with our powerful platform. 
-                  No coding required, just upload and go live instantly.
+                  Our experts designs, develops, and maintains complete website solutions tailored to your needs. You'll always have full control, easily modifying text and replacing images yourself.
                 </p>
                 
                 <div className="mt-8 sm:flex sm:justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">

@@ -78,7 +78,7 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
     try {
       const response = await fetch(`/api/contact-us-widget/messages?userId=${userId}`);
       const data = await response.json();
-      setMessages(data);
+      setMessages(data.messages || data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -1160,13 +1160,24 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
                       return (
                         <tr 
                           key={message._id as string} 
-                          className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}
+                          className={`transition-colors ${
+                            message.isRead 
+                              ? `hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}` 
+                              : 'bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-500'
+                          }`}
                         >
                           {/* Date & Time */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm">
-                              <div className="font-semibold text-gray-900">
-                                {new Date(message.submissionTime).toLocaleDateString()}
+                              <div className="flex items-center gap-2">
+                                <div className="font-semibold text-gray-900">
+                                  {new Date(message.submissionTime).toLocaleDateString()}
+                                </div>
+                                {!message.isRead && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    New
+                                  </span>
+                                )}
                               </div>
                               <div className="text-gray-500">
                                 {new Date(message.submissionTime).toLocaleTimeString()}

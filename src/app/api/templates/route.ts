@@ -22,10 +22,14 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
     const search = searchParams.get('search');
 
-    // Build filter object - only show public and active templates to regular users
+    // Build filter object - show public templates and custom templates for this user
+    const userMobileNumber = session.user.mobileNumber;
     const filter: any = {
       isActive: true,
-      isPublic: true
+      $or: [
+        { isPublic: true, customMobileNumber: null }, // Public templates
+        { isPublic: false, customMobileNumber: userMobileNumber } // Custom templates for this user
+      ]
     };
     
     if (category && category !== 'all') {
@@ -72,8 +76,8 @@ export async function GET(request: NextRequest) {
         hasNext: page < Math.ceil(total / limit),
         hasPrev: page > 1
       },
-      categories: await getAvailableCategories(),
-      types: await getAvailableTypes()
+      categories: await getAvailableCategories(userMobileNumber),
+      types: await getAvailableTypes(userMobileNumber)
     });
 
   } catch (error) {
@@ -86,9 +90,16 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper function to get available categories from existing templates
-async function getAvailableCategories() {
+async function getAvailableCategories(userMobileNumber: string) {
   try {
-    const categories = await WebTemplate.distinct('businessCategory', { isActive: true, isPublic: true });
+    const filter = {
+      isActive: true,
+      $or: [
+        { isPublic: true, customMobileNumber: null }, // Public templates
+        { isPublic: false, customMobileNumber: userMobileNumber } // Custom templates for this user
+      ]
+    };
+    const categories = await WebTemplate.distinct('businessCategory', filter);
     return categories.sort();
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -97,9 +108,16 @@ async function getAvailableCategories() {
 }
 
 // Helper function to get available types from existing templates
-async function getAvailableTypes() {
+async function getAvailableTypes(userMobileNumber: string) {
   try {
-    const types = await WebTemplate.distinct('templateType', { isActive: true, isPublic: true });
+    const filter = {
+      isActive: true,
+      $or: [
+        { isPublic: true, customMobileNumber: null }, // Public templates
+        { isPublic: false, customMobileNumber: userMobileNumber } // Custom templates for this user
+      ]
+    };
+    const types = await WebTemplate.distinct('templateType', filter);
     return types.sort();
   } catch (error) {
     console.error('Error fetching types:', error);

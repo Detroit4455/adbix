@@ -73,8 +73,7 @@ export default function TemplatesPage() {
     hasPrev: false
   });
 
-  // Preview modal
-  const [previewTemplate, setPreviewTemplate] = useState<WebTemplate | null>(null);
+
 
   // Fetch templates
   const fetchTemplates = async () => {
@@ -311,7 +310,7 @@ export default function TemplatesPage() {
                       {template.previewUrl && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                           <button
-                            onClick={() => setPreviewTemplate(template)}
+                            onClick={() => router.push(`/template-preview/${template.templateId}`)}
                             className="px-4 py-2 bg-white text-gray-900 rounded-md hover:bg-gray-100 transition-colors"
                           >
                             Preview
@@ -360,7 +359,7 @@ export default function TemplatesPage() {
                       <div className="flex space-x-2">
                         {template.previewUrl && (
                           <button
-                            onClick={() => window.open(template.previewUrl, '_blank')}
+                            onClick={() => router.push(`/template-preview/${template.templateId}`)}
                             className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors"
                           >
                             Preview
@@ -421,54 +420,7 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      {/* Preview Modal */}
-      {previewTemplate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">{previewTemplate.name}</h3>
-              <button
-                onClick={() => setPreviewTemplate(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-4">
-              {previewTemplate.previewUrl ? (
-                <iframe
-                  src={previewTemplate.previewUrl}
-                  className="w-full h-96 border border-gray-300 rounded"
-                  title={`Preview of ${previewTemplate.name}`}
-                />
-              ) : (
-                <div className="w-full h-96 bg-gray-100 flex items-center justify-center rounded">
-                  <p className="text-gray-500">Preview not available</p>
-                </div>
-              )}
-              <div className="mt-4 flex justify-end space-x-3">
-                <button
-                  onClick={() => setPreviewTemplate(null)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setPreviewTemplate(null);
-                    deployTemplate(previewTemplate.templateId);
-                  }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                >
-                  Use This Template
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 } 

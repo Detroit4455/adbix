@@ -487,9 +487,7 @@ This is a markdown file. You can use markdown syntax to format your content.
               <div className="flex items-center space-x-2">
                 {selectedTemplate.metadata.hasIndexHtml && (
                   <a
-                    href={`https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'dt-web-sites'}.s3.${process.env.NEXT_PUBLIC_AWS_REGION || 'ap-south-1'}.amazonaws.com/web-templates/${selectedTemplate.templateId}/index.html`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/template-preview/${selectedTemplate.templateId}`}
                     className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
                   >
                     <span className="mr-1">🌐</span>

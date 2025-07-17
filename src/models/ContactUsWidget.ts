@@ -43,6 +43,7 @@ export interface ContactUsMessage extends Document {
   submissionTime: Date;
   ipAddress?: string;
   userAgent?: string;
+  isRead: boolean;
 }
 
 // Schema for form fields
@@ -87,7 +88,8 @@ const ContactUsMessageSchema = new Schema<ContactUsMessage>({
   formData: { type: Map, of: String, required: true },
   submissionTime: { type: Date, default: Date.now },
   ipAddress: { type: String },
-  userAgent: { type: String }
+  userAgent: { type: String },
+  isRead: { type: Boolean, default: false }
 });
 
 // Update the updatedAt field before saving

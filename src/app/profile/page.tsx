@@ -14,7 +14,8 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   CalendarIcon,
-  UserIcon
+  UserIcon,
+  BuildingOfficeIcon
 } from '@heroicons/react/24/outline';
 
 interface UserProfile {
@@ -216,11 +217,55 @@ export default function ProfilePage() {
       <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
         <Navbar />
         
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-            <p className="mt-2 text-gray-600">Manage your account information and preferences</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header with Action Buttons */}
+          <div className="sticky top-0 z-10 bg-gray-50 pb-4 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+                <p className="mt-2 text-gray-600">Manage your account information and preferences</p>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3">
+                {!editing ? (
+                  <button
+                    onClick={handleEditToggle}
+                    className="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    <PencilIcon className="h-5 w-5 mr-2" />
+                    Edit Profile
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleEditToggle}
+                      className="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      <XMarkIcon className="h-5 w-5 mr-2" />
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {saving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckIcon className="h-5 w-5 mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Success Message */}
@@ -269,38 +314,23 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Edit Mode Toggle */}
-          <div className="flex justify-end mb-6">
-            <button
-              onClick={handleEditToggle}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-            >
-              {editing ? (
-                <>
-                  <XMarkIcon className="h-5 w-5 mr-2" />
-                  Cancel Editing
-                </>
-              ) : (
-                <>
-                  <PencilIcon className="h-5 w-5 mr-2" />
-                  Edit Profile
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Form Sections */}
-          <div className="space-y-8">
+          {/* Main Content - Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Personal Information Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-fit">
+              <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                 <div className="flex items-center">
-                  <UserCircleIcon className="h-6 w-6 text-indigo-600 mr-3" />
-                  <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <UserCircleIcon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Personal Information</h3>
+                    <p className="text-sm text-gray-600">Your personal details and contact information</p>
+                  </div>
                 </div>
               </div>
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
                   {/* Mobile Number */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -312,7 +342,7 @@ export default function ProfilePage() {
                         type="text"
                         value={profile.mobileNumber}
                         readOnly
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 text-gray-500 cursor-not-allowed"
+                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-gray-50 text-gray-500 cursor-not-allowed"
                       />
                     </div>
                     <p className="mt-1 text-xs text-gray-500">Mobile number cannot be changed</p>
@@ -321,7 +351,7 @@ export default function ProfilePage() {
                   {/* Full Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
+                      Full Name *
                     </label>
                     <div className="relative">
                       <UserIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -330,9 +360,9 @@ export default function ProfilePage() {
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         disabled={!editing}
-                        className={`block w-full pl-10 pr-3 py-2 border rounded-md leading-5 transition-colors ${
+                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg leading-5 transition-colors ${
                           editing 
-                            ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
+                            ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
                             : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
                         } ${errors.name ? 'border-red-300' : ''}`}
                         placeholder="Enter your full name"
@@ -355,9 +385,9 @@ export default function ProfilePage() {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         disabled={!editing}
-                        className={`block w-full pl-10 pr-3 py-2 border rounded-md leading-5 transition-colors ${
+                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg leading-5 transition-colors ${
                           editing 
-                            ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
+                            ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
                             : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
                         } ${errors.email ? 'border-red-300' : ''}`}
                         placeholder="Enter your email address"
@@ -379,27 +409,55 @@ export default function ProfilePage() {
                         type="text"
                         value={profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
                         readOnly
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 text-gray-500 cursor-not-allowed"
+                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-gray-50 text-gray-500 cursor-not-allowed"
                       />
                     </div>
                     <p className="mt-1 text-xs text-gray-500">Role is managed by administrators</p>
+                  </div>
+
+                  {/* Account Dates */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <CalendarIcon className="h-5 w-5 text-gray-400 mr-3" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Joined</p>
+                            <p className="text-sm text-gray-600">{new Date(profile.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Updated</p>
+                            <p className="text-sm text-gray-600">{new Date(profile.updatedAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Business Information Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-fit">
+              <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-green-50">
                 <div className="flex items-center">
-                  <svg className="h-6 w-6 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">Business Information</h3>
+                  <div className="p-2 bg-emerald-100 rounded-lg mr-4">
+                    <BuildingOfficeIcon className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Business Information</h3>
+                    <p className="text-sm text-gray-600">Your business details and location</p>
+                  </div>
                 </div>
               </div>
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
                   {/* Business Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -410,9 +468,9 @@ export default function ProfilePage() {
                       value={formData.businessName}
                       onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                       disabled={!editing}
-                      className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
+                      className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
                         editing 
-                          ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
+                          ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
                           : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
                       }`}
                       placeholder="Enter your business name"
@@ -429,197 +487,90 @@ export default function ProfilePage() {
                       value={formData.businessCategory}
                       onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
                       disabled={!editing}
-                      className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
+                      className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
                         editing 
-                          ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
+                          ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
                           : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
                       }`}
                       placeholder="e.g., Restaurant, Retail, Services"
                     />
                   </div>
 
-                  {/* Area */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Area
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.area}
-                      onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                      disabled={!editing}
-                      className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
-                        editing 
-                          ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
-                          : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
-                      }`}
-                      placeholder="Area or locality"
-                    />
-                  </div>
-
-                  {/* Pincode */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Pincode
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.pincode}
-                      onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
-                      disabled={!editing}
-                      className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
-                        editing 
-                          ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
-                          : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
-                      } ${errors.pincode ? 'border-red-300' : ''}`}
-                      placeholder="6-digit pincode"
-                      maxLength={6}
-                    />
-                    {errors.pincode && (
-                      <p className="mt-1 text-sm text-red-600">{errors.pincode}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Business Address */}
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Business Address
-                  </label>
-                  <textarea
-                    value={formData.businessAddress}
-                    onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
-                    disabled={!editing}
-                    rows={3}
-                    className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
-                      editing 
-                        ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
-                        : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
-                    }`}
-                    placeholder="Enter your full business address"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Social Media Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center">
-                  <svg className="h-6 w-6 text-pink-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 4V5a1 1 0 011-1h6a1 1 0 011 1v1M6 9l6 6 6-6" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">Social Media</h3>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Instagram ID */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Instagram ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.instagramId}
-                      onChange={(e) => setFormData({ ...formData, instagramId: e.target.value })}
-                      disabled={!editing}
-                      className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
-                        editing 
-                          ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
-                          : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
-                      }`}
-                      placeholder="@your_instagram_handle"
-                    />
-                  </div>
-
-                  {/* Instagram URL */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Instagram URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.instagramUrl}
-                      onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
-                      disabled={!editing}
-                      className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
-                        editing 
-                          ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
-                          : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
-                      } ${errors.instagramUrl ? 'border-red-300' : ''}`}
-                      placeholder="https://instagram.com/your_handle"
-                    />
-                    {errors.instagramUrl && (
-                      <p className="mt-1 text-sm text-red-600">{errors.instagramUrl}</p>
-                    )}
-                  </div>
-
-                  {/* Facebook URL */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Facebook URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.facebookUrl}
-                      onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })}
-                      disabled={!editing}
-                      className={`block w-full px-3 py-2 border rounded-md leading-5 transition-colors ${
-                        editing 
-                          ? 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500' 
-                          : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
-                      } ${errors.facebookUrl ? 'border-red-300' : ''}`}
-                      placeholder="https://facebook.com/your_page"
-                    />
-                    {errors.facebookUrl && (
-                      <p className="mt-1 text-sm text-red-600">{errors.facebookUrl}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Account Information Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center">
-                  <CalendarIcon className="h-6 w-6 text-blue-600 mr-3" />
-                  <h3 className="text-lg font-semibold text-gray-900">Account Information</h3>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <CalendarIcon className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Joined</p>
-                        <p className="text-sm text-gray-600">{new Date(profile.createdAt).toLocaleDateString()}</p>
-                      </div>
+                  {/* Location Fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Area
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.area}
+                        onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                        disabled={!editing}
+                        className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
+                          editing 
+                            ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
+                            : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
+                        }`}
+                        placeholder="Area or locality"
+                      />
                     </div>
-                  </div>
-                  
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Last Updated</p>
-                        <p className="text-sm text-gray-600">{new Date(profile.updatedAt).toLocaleDateString()}</p>
-                      </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Pincode
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.pincode}
+                        onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                        disabled={!editing}
+                        className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
+                          editing 
+                            ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
+                            : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
+                        } ${errors.pincode ? 'border-red-300' : ''}`}
+                        placeholder="6-digit pincode"
+                        maxLength={6}
+                      />
+                      {errors.pincode && (
+                        <p className="mt-1 text-sm text-red-600">{errors.pincode}</p>
+                      )}
                     </div>
                   </div>
 
-                  {profile.area && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center">
-                        <svg className="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Location</p>
-                          <p className="text-sm text-gray-600">{profile.area}{profile.pincode && `, ${profile.pincode}`}</p>
+                  {/* Business Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Address
+                    </label>
+                    <textarea
+                      value={formData.businessAddress}
+                      onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
+                      disabled={!editing}
+                      rows={3}
+                      className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
+                        editing 
+                          ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
+                          : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
+                      }`}
+                      placeholder="Enter your full business address"
+                    />
+                  </div>
+
+                  {/* Location Summary */}
+                  {(profile.area || profile.pincode) && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="bg-emerald-50 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <svg className="h-5 w-5 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-medium text-emerald-900">Business Location</p>
+                            <p className="text-sm text-emerald-700">{profile.area}{profile.pincode && `, ${profile.pincode}`}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -627,38 +578,92 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Save Button */}
-            {editing && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={handleEditToggle}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {saving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <CheckIcon className="h-5 w-5 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </button>
+          {/* Social Media Section - Full Width */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-pink-50 to-purple-50">
+              <div className="flex items-center">
+                <div className="p-2 bg-pink-100 rounded-lg mr-4">
+                  <svg className="h-6 w-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 4V5a1 1 0 011-1h6a1 1 0 011 1v1M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Social Media</h3>
+                  <p className="text-sm text-gray-600">Connect your social media profiles</p>
                 </div>
               </div>
-            )}
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Instagram ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Instagram ID
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.instagramId}
+                    onChange={(e) => setFormData({ ...formData, instagramId: e.target.value })}
+                    disabled={!editing}
+                    className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
+                      editing 
+                        ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
+                        : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
+                    }`}
+                    placeholder="@your_instagram_handle"
+                  />
+                </div>
+
+                {/* Instagram URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Instagram URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.instagramUrl}
+                    onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
+                    disabled={!editing}
+                    className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
+                      editing 
+                        ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
+                        : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
+                    } ${errors.instagramUrl ? 'border-red-300' : ''}`}
+                    placeholder="https://instagram.com/your_handle"
+                  />
+                  {errors.instagramUrl && (
+                    <p className="mt-1 text-sm text-red-600">{errors.instagramUrl}</p>
+                  )}
+                </div>
+
+                {/* Facebook URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Facebook URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.facebookUrl}
+                    onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })}
+                    disabled={!editing}
+                    className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
+                      editing 
+                        ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
+                        : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
+                    } ${errors.facebookUrl ? 'border-red-300' : ''}`}
+                    placeholder="https://facebook.com/your_page"
+                  />
+                  {errors.facebookUrl && (
+                    <p className="mt-1 text-sm text-red-600">{errors.facebookUrl}</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+
+
         </div>
       </div>
     </div>

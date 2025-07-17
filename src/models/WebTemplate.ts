@@ -11,6 +11,7 @@ export interface IWebTemplate extends Document {
   previewImage?: string;
   isActive: boolean;
   isPublic: boolean;
+  customMobileNumber?: string; // For custom templates - mobile number of specific user
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -95,6 +96,11 @@ const WebTemplateSchema = new Schema<IWebTemplate>({
     type: Boolean,
     default: true
   },
+  customMobileNumber: {
+    type: String,
+    default: null,
+    index: true // Add index for efficient filtering
+  },
   createdBy: {
     type: String,
     required: true
@@ -125,6 +131,7 @@ const WebTemplateSchema = new Schema<IWebTemplate>({
 WebTemplateSchema.index({ businessCategory: 1 });
 WebTemplateSchema.index({ templateType: 1 });
 WebTemplateSchema.index({ isActive: 1, isPublic: 1 });
+WebTemplateSchema.index({ isActive: 1, isPublic: 1, customMobileNumber: 1 }); // For custom template filtering
 WebTemplateSchema.index({ tags: 1 });
 WebTemplateSchema.index({ createdAt: -1 });
 

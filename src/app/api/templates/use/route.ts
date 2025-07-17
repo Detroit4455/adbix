@@ -37,10 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the template
-    const template = await WebTemplate.findOne({ 
-      templateId, 
-      isActive: true, 
-      isPublic: true 
+    const template = await WebTemplate.findOne({
+      templateId,
+      isActive: true,
+      $or: [
+        { isPublic: true, customMobileNumber: null },
+        { isPublic: false, customMobileNumber: session.user.mobileNumber }
+      ]
     });
 
     if (!template) {

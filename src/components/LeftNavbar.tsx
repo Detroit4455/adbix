@@ -22,7 +22,7 @@ export default function LeftNavbar({ isOpen = false, onClose }: LeftNavbarProps)
 
   const isActive = (path: string) => pathname === path;
   const isToolsActive = pathname.startsWith('/tools') || pathname === '/image_repo';
-  const isSettingsActive = pathname.startsWith('/billing') || pathname.startsWith('/profile');
+  const isSettingsActive = pathname.startsWith('/billing') || pathname.startsWith('/profile') || pathname.startsWith('/web-dev');
 
   return (
     <>
@@ -246,6 +246,24 @@ export default function LeftNavbar({ isOpen = false, onClose }: LeftNavbarProps)
                   </svg>
                   Billing
                 </Link>
+                  
+                  {/* Web Dev link for admin/devops only */}
+                  {(session.user.role === 'admin' || session.user.role === 'devops') && (
+                    <Link
+                      href="/web-dev"
+                      className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isActive('/web-dev')
+                          ? 'bg-green-50 text-green-700 border-r-2 border-green-700'
+                          : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
+                      }`}
+                    >
+                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      Web Dev
+                    </Link>
+                  )}
+                  
                 <Link
                   href="/profile"
                   className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
