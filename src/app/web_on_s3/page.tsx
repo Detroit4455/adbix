@@ -9,6 +9,7 @@ import WebsitePreview from '@/components/WebsitePreview';
 import MyImages from '@/components/MyImages';
 import Navbar from '@/components/Navbar';
 import LeftNavbar from '@/components/LeftNavbar';
+import QRCodeGenerator from '@/components/QRCodeGenerator';
 import Link from 'next/link';
 import { 
   CloudArrowUpIcon, 
@@ -54,6 +55,7 @@ export default function WebOnS3Page() {
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const [hasWebsiteFiles, setHasWebsiteFiles] = useState(false);
   const [checkingFiles, setCheckingFiles] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   // Function to get direct S3 URL (bypassing CDN)
   const getDirectS3Url = (userId: string, filePath: string = 'index.html'): string => {
@@ -140,6 +142,25 @@ export default function WebOnS3Page() {
       checkWebsiteFiles();
     }
   }, [session, mobileNumber]);
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!session?.user) return;
+      
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          setUserProfile(data.profile);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [session]);
 
   // Set default active tab based on permissions
   useEffect(() => {
@@ -637,6 +658,18 @@ export default function WebOnS3Page() {
                         )}
                       </div>
                     </div>
+
+                    {/* QR Code Generator */}
+                    {mobileNumber && (
+                      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6">
+                        <QRCodeGenerator 
+                          url={`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/site/${mobileNumber}/index.html`}
+                          logoUrl="/favicon_io/android-chrome-512x512.png"
+                          businessName={userProfile?.businessName || userProfile?.name || 'My Website'}
+                          size={400}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Additional Info */}

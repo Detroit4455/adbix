@@ -1,5 +1,6 @@
-import React from 'react';
-import { connectToDatabase } from '@/lib/db';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 
 interface User {
   _id: any;
@@ -8,6 +9,7 @@ interface User {
   mobileNumber?: string;
   role?: string;
   status?: string;
+  requireSubscriptionCheck?: boolean;
   lastUpdated?: Date;
 }
 
@@ -18,41 +20,79 @@ interface FormattedUser {
   mobileNumber: string;
   role: string;
   status: string;
+  requireSubscriptionCheck: boolean;
   lastUpdated: string;
 }
 
-export default async function UserManagementPage() {
-  // Connect to the database
-  const { db } = await connectToDatabase();
-  
-  // Fetch all users from the database
-  const users: User[] = await db.collection('users').find({}).project({
-    _id: 1,
-    name: 1,
-    email: 1,
-    mobileNumber: 1,
-    role: 1,
-    status: 1,
-    lastUpdated: 1,
-  }).toArray();
+export default function UserManagementPage() {
+  const [users, setUsers] = useState<FormattedUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch available roles from settings table
-  const roleSettings = await db.collection('settings').findOne({ type: 'roles' }) || {
-    roles: ['admin', 'user', 'devops', 'manager'] // Default roles if not found in settings
+  // Fetch users from API
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/users');
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const data = await response.json();
+      setUsers(data.users || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const availableRoles = roleSettings.roles || ['admin', 'user', 'devops', 'manager'];
+  // Toggle subscription check for a user
+  const toggleSubscriptionCheck = async (userId: string, requireSubscriptionCheck: boolean) => {
+    try {
+      const response = await fetch('/api/admin/toggle-subscription-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, requireSubscriptionCheck }),
+      });
 
-  // Format users for display
-  const formattedUsers: FormattedUser[] = users.map((user: User) => ({
-    id: user._id.toString(),
-    name: user.name || 'No Name',
-    email: user.email || 'No Email',
-    mobileNumber: user.mobileNumber || 'No Mobile',
-    role: user.role || 'user',
-    status: user.status || 'active',
-    lastUpdated: user.lastUpdated ? new Date(user.lastUpdated).toLocaleDateString() : 'Never'
-  }));
+      if (!response.ok) {
+        throw new Error('Failed to toggle subscription check');
+      }
+
+      // Refresh the users list
+      await fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle subscription check');
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-64">
+        <div className="text-lg text-gray-600">Loading users...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="text-red-800">Error: {error}</div>
+        <button 
+          onClick={fetchUsers}
+          className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -84,6 +124,9 @@ export default async function UserManagementPage() {
                   Status
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subscription Check
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Last Updated
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -92,7 +135,7 @@ export default async function UserManagementPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {formattedUsers.map((user: FormattedUser) => (
+              {users.map((user: FormattedUser) => (
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -126,6 +169,12 @@ export default async function UserManagementPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      ${user.requireSubscriptionCheck ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {user.requireSubscriptionCheck ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">{user.lastUpdated}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 space-x-2">
@@ -135,6 +184,12 @@ export default async function UserManagementPage() {
                     >
                       Edit Role
                     </a>
+                    <button 
+                      onClick={() => toggleSubscriptionCheck(user.id, !user.requireSubscriptionCheck)}
+                      className={`${user.requireSubscriptionCheck ? 'text-orange-600 hover:text-orange-900' : 'text-green-600 hover:text-green-900'}`}
+                    >
+                      {user.requireSubscriptionCheck ? 'Disable Sub Check' : 'Enable Sub Check'}
+                    </button>
                     <button className="text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>
@@ -145,7 +200,7 @@ export default async function UserManagementPage() {
         <div className="px-6 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              Showing <span className="font-medium">1</span> to <span className="font-medium">{formattedUsers.length}</span> of <span className="font-medium">{formattedUsers.length}</span> results
+              Showing <span className="font-medium">1</span> to <span className="font-medium">{users.length}</span> of <span className="font-medium">{users.length}</span> results
             </div>
             <div className="flex space-x-2">
               <button className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50">Previous</button>

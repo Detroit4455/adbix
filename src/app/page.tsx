@@ -83,6 +83,12 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-4">
               <Link
+                href="/contact"
+                className="text-gray-700 hover:text-indigo-600 font-medium transition-colors"
+              >
+                Contact
+              </Link>
+              <Link
                 href="/login"
                 className="text-gray-700 hover:text-indigo-600 font-medium transition-colors"
               >
@@ -341,9 +347,9 @@ export default function Home() {
                  © 2024 adbix. All rights reserved.
                </p>
               <div className="flex space-x-6 mt-4 md:mt-0">
-                <span className="text-gray-400 text-sm">Privacy Policy</span>
-                <span className="text-gray-400 text-sm">Terms of Service</span>
-                <span className="text-gray-400 text-sm">Support</span>
+                <Link href="/privacy" className="text-gray-400 text-sm hover:text-white transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="text-gray-400 text-sm hover:text-white transition-colors">Terms of Service</Link>
+                <Link href="/cancellation-and-refund" className="text-gray-400 text-sm hover:text-white transition-colors">Cancellation & Refund</Link>
               </div>
             </div>
           </div>

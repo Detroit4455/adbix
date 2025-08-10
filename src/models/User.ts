@@ -7,6 +7,7 @@ export interface IUser {
   name?: string;
   email?: string;
   role?: string;
+  status?: string;
   businessName?: string;
   businessCategory?: string;
   businessAddress?: string;
@@ -23,6 +24,7 @@ export interface IUser {
       canDeploy?: boolean;
     }
   };
+  requireSubscriptionCheck?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +65,11 @@ const userSchema = new Schema<IUser>({
     type: String,
     enum: ['user', 'admin', 'devops', 'manager'],
     default: 'user'
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active'
   },
   businessName: {
     type: String,
@@ -121,6 +128,10 @@ const userSchema = new Schema<IUser>({
       canDelete: { type: Boolean, default: false },
       canDeploy: { type: Boolean, default: false }
     }
+  },
+  requireSubscriptionCheck: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

@@ -61,7 +61,7 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
       const params = new URLSearchParams({
         userId: session.user.mobileNumber,
         page: page.toString(),
-        limit: '10',
+        limit: '8',
         ...(search && { search })
       });
 
@@ -184,9 +184,9 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
 
   return (
     <>
-      <div className={`bg-white rounded-2xl shadow-sm border border-gray-200 ${className}`}>
+      <div className={`bg-white rounded-2xl shadow-sm border border-gray-200 h-full flex flex-col ${className}`}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h3 className="text-xl font-semibold text-gray-900">Contact-Us Widget Messages</h3>
@@ -204,12 +204,12 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search messages..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-64"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-48 sm:w-64"
                 />
               </div>
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors"
+                className="px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors"
               >
                 Search
               </button>
@@ -218,7 +218,7 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
         </div>
 
         {/* Messages List */}
-        <div className="p-6">
+        <div className="p-6 flex-1 overflow-hidden flex flex-col">
           {messages.length === 0 ? (
             <div className="text-center py-12">
               <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -228,7 +228,7 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1 overflow-y-auto">
               {messages.map((message) => {
                 const formDataEntries = Object.entries(message.formData);
                 const mainField = formDataEntries.find(([key]) => 
@@ -236,7 +236,7 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
                 ) || formDataEntries[0];
                 
                 return (
-                  <div key={message._id} className={`border rounded-lg p-4 transition-colors ${
+                  <div key={message._id} className={`border rounded-lg p-3 transition-colors ${
                     message.isRead 
                       ? 'border-gray-200 bg-white hover:bg-gray-50' 
                       : 'border-blue-200 bg-blue-50 hover:bg-blue-100'
@@ -262,9 +262,9 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
                           </div>
                         </div>
                         
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           {/* Show sender info (name/email) */}
-                          <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-3 text-sm">
                             {formDataEntries.find(([key]) => key.toLowerCase().includes('name')) && (
                               <div className="flex items-center">
                                 <UserIcon className="h-4 w-4 text-gray-400 mr-1 flex-shrink-0" />
@@ -338,7 +338,7 @@ export default function ContactUsMessagesPanel({ className = '' }: ContactUsMess
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 flex-shrink-0">
               <div className="text-sm text-gray-600">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.totalMessages)} of {pagination.totalMessages} messages
               </div>

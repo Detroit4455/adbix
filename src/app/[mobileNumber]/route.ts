@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { join } from 'path';
 import { readFile, stat } from 'fs/promises';
 import { existsSync } from 'fs';
+// Note: No subscription checks here. Subscription enforcement applies only under /site/[mobileno]
 
 // Helper function to add base path to HTML content and fix relative paths
 function processHtml(htmlContent: string, basePath: string): string {
@@ -40,6 +41,12 @@ export async function GET(
     const url = new URL(request.url);
     let filePath = url.pathname.substring(`/${mobileNumber}`.length) || '/index.html';
     
+    // Remove leading slash for processing
+    const cleanFilePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+    const isErrorPage = cleanFilePath === 'error.html';
+    
+    // No subscription check here – always serve requested asset
+    
     // Normalize the path (convert backslashes to forward slashes)
     filePath = filePath.replace(/\\/g, '/');
     
@@ -74,6 +81,48 @@ export async function GET(
       const existingPath = pathVariations.find(path => existsSync(path));
       
       if (!existingPath) {
+        // If error.html is requested but doesn't exist, provide a fallback error page
+        if (isErrorPage) {
+          console.log('error.html not found, providing fallback error page');
+          const fallbackErrorHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Unavailable</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #e74c3c; }
+        p { color: #666; line-height: 1.6; }
+        .contact { margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 Service Unavailable</h1>
+        <p>Your website service is currently unavailable. This could be due to:</p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>Subscription needs renewal</li>
+            <li>Payment pending</li>
+            <li>Account maintenance</li>
+        </ul>
+        <div class="contact">
+            <p><strong>Need help?</strong> Please contact your service provider to restore access.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+          
+          return new NextResponse(fallbackErrorHtml, {
+            headers: {
+              'Content-Type': 'text/html',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+            }
+          });
+        }
+        
         return NextResponse.json(
           { error: 'File not found' },
           { status: 404 }

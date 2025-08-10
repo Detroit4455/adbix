@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Subscription from '@/models/Subscription';
 import RazorpayService, { RAZORPAY_CONFIG, isRazorpayConfigured } from '@/lib/razorpay';
+import { subscriptionCache } from '@/lib/subscriptionCache';
+
+/**
+ * Helper function to save subscription and invalidate cache
+ */
+async function saveSubscriptionAndInvalidateCache(subscription: any) {
+  await subscription.save();
+  if (subscription.userId) {
+    subscriptionCache.invalidateUser(subscription.userId);
+    console.log(`🗑️ Cache invalidated for user ${subscription.userId} due to subscription change`);
+  }
+}
 
 /**
  * POST /api/webhooks/razorpay - Handle Razorpay webhooks
@@ -128,7 +140,7 @@ async function handleSubscriptionActivated(subscriptionData: any) {
       processedAt: new Date()
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription activated:', subscription.razorpaySubscriptionId);
 
   } catch (error) {
@@ -230,7 +242,7 @@ async function handleSubscriptionCompleted(subscriptionData: any) {
       processedAt: new Date()
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription completed:', subscription.razorpaySubscriptionId);
 
   } catch (error) {
@@ -262,7 +274,7 @@ async function handleSubscriptionCancelled(subscriptionData: any) {
       processedAt: new Date()
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription cancelled:', subscription.razorpaySubscriptionId);
 
   } catch (error) {
@@ -292,7 +304,7 @@ async function handleSubscriptionPaused(subscriptionData: any) {
       processedAt: new Date()
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription paused:', subscription.razorpaySubscriptionId);
 
   } catch (error) {
@@ -322,7 +334,7 @@ async function handleSubscriptionResumed(subscriptionData: any) {
       processedAt: new Date()
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription resumed:', subscription.razorpaySubscriptionId);
 
   } catch (error) {
@@ -354,7 +366,7 @@ async function handleSubscriptionAuthenticated(subscriptionData: any) {
       processedAt: new Date()
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription authenticated (UPI Autopay approved):', subscription.razorpaySubscriptionId);
 
     // For UPI Autopay, immediately charge the first payment to activate subscription

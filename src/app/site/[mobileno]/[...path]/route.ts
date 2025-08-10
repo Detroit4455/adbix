@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWebsiteUrl, getDirectS3Url, isCloudFrontConfigured } from '@/lib/aws-urls';
+import { checkSubscriptionCached } from '@/lib/subscriptionCache';
 
 export async function GET(
   request: NextRequest,
@@ -10,8 +11,11 @@ export async function GET(
     const paramValues = await Promise.resolve(params);
     const { mobileno, path } = paramValues;
     
-    // Construct the path to the resource
+        // Construct the path to the resource
     const pathSegments = Array.isArray(path) ? path.join('/') : path;
+    
+    // Check if requesting error.html
+    const isErrorPage = pathSegments === 'error.html';
     
     // Use CloudFront URL for website serving, S3 for internal operations
     const websiteUrl = getWebsiteUrl(mobileno, pathSegments);
@@ -29,6 +33,33 @@ export async function GET(
     
     console.log(`Preview mode: ${isPreviewMode}, fetching from: ${fetchUrl}`);
     
+    // Check subscription status for non-preview and non-error requests using cache
+    if (!isPreviewMode && !isErrorPage) {
+      try {
+        const { shouldAllowAccess } = await checkSubscriptionCached(mobileno);
+        
+        if (!shouldAllowAccess) {
+          console.log('🚫 Subscription check failed for user:', mobileno);
+          // Redirect to error.html in the user's site
+          const errorUrl = new URL(request.url);
+          errorUrl.pathname = `/site/${mobileno}/error.html`;
+          errorUrl.searchParams.delete('preview'); // Remove preview param if any
+          return NextResponse.redirect(errorUrl.toString());
+        } else {
+          console.log('✅ Subscription check passed for user:', mobileno);
+        }
+      } catch (error) {
+        console.error('Error checking subscription status:', error);
+        // On error, redirect to error.html to be safe
+        const errorUrl = new URL(request.url);
+        errorUrl.pathname = `/site/${mobileno}/error.html`;
+        errorUrl.searchParams.delete('preview');
+        return NextResponse.redirect(errorUrl.toString());
+      }
+    } else if (isErrorPage) {
+      console.log('Serving error.html - skipping subscription check');
+    }
+    
     // Fetch content from the appropriate URL (S3 for preview, CloudFront for live)
     const response = await fetch(fetchUrl);
     
@@ -36,6 +67,48 @@ export async function GET(
       // Handle fallback based on request type
       if (isPreviewMode) {
         // Preview mode already uses S3 direct, so no fallback needed
+        // If error.html is requested but doesn't exist, provide fallback error page
+        if (isErrorPage) {
+          console.log('error.html not found in preview mode, providing fallback error page');
+          const fallbackErrorHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Unavailable</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #e74c3c; }
+        p { color: #666; line-height: 1.6; }
+        .contact { margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 Service Unavailable</h1>
+        <p>Your website service is currently unavailable. This could be due to:</p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>Subscription needs renewal</li>
+            <li>Payment pending</li>
+            <li>Account maintenance</li>
+        </ul>
+        <div class="contact">
+            <p><strong>Need help?</strong> Please contact your service provider to restore access.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+          
+          return new NextResponse(fallbackErrorHtml, {
+            headers: {
+              'Content-Type': 'text/html',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+            }
+          });
+        }
+        
         return new NextResponse(`Failed to fetch content from S3: ${response.statusText}`, {
           status: response.status,
         });
@@ -47,12 +120,96 @@ export async function GET(
         const fallbackResponse = await fetch(s3FallbackUrl);
         
         if (!fallbackResponse.ok) {
+          // If error.html is requested but doesn't exist, provide fallback error page
+          if (isErrorPage) {
+            console.log('error.html not found on S3/CloudFront, providing fallback error page');
+            const fallbackErrorHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Unavailable</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #e74c3c; }
+        p { color: #666; line-height: 1.6; }
+        .contact { margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 Service Unavailable</h1>
+        <p>Your website service is currently unavailable. This could be due to:</p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>Subscription needs renewal</li>
+            <li>Payment pending</li>
+            <li>Account maintenance</li>
+        </ul>
+        <div class="contact">
+            <p><strong>Need help?</strong> Please contact your service provider to restore access.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+            
+            return new NextResponse(fallbackErrorHtml, {
+              headers: {
+                'Content-Type': 'text/html',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+              }
+            });
+          }
+          
           return new NextResponse(`Failed to fetch from both CloudFront and S3: ${response.statusText}`, {
             status: response.status,
           });
         }
         
         return handleResponse(fallbackResponse, isPreviewMode, mobileno);
+      }
+      
+      // If error.html is requested but doesn't exist, provide fallback error page
+      if (isErrorPage) {
+        console.log('error.html not found, providing fallback error page');
+        const fallbackErrorHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Unavailable</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #e74c3c; }
+        p { color: #666; line-height: 1.6; }
+        .contact { margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 Service Unavailable</h1>
+        <p>Your website service is currently unavailable. This could be due to:</p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>Subscription needs renewal</li>
+            <li>Payment pending</li>
+            <li>Account maintenance</li>
+        </ul>
+        <div class="contact">
+            <p><strong>Need help?</strong> Please contact your service provider to restore access.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+        
+        return new NextResponse(fallbackErrorHtml, {
+          headers: {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+          }
+        });
       }
       
       return new NextResponse(`Failed to fetch content: ${response.statusText}`, {
