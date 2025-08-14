@@ -49,7 +49,7 @@ export default function CancellationRefundPage() {
             <p className="text-gray-700">For one-time implementation or setup services, refunds are not available once work has commenced. If no work has started, you may request cancellation and a full refund.</p>
 
             <h2 className="text-2xl font-bold text-gray-900 mt-8">4. How to Request a Refund</h2>
-            <p className="text-gray-700">Send your request to <a className="text-indigo-600 hover:text-indigo-700" href="mailto:support@adbix.app">support@adbix.app</a> with your account email, invoice ID, and a brief description of the issue. You can also call <a className="text-indigo-600 hover:text-indigo-700" href="tel:+917058266244">+91-7058266244</a>.</p>
+            <p className="text-gray-700">Send your request to <a className="text-indigo-600 hover:text-indigo-700" href="mailto:support@adbix.in">support@adbix.in</a> with your account email, invoice ID, and a brief description of the issue. You can also call <a className="text-indigo-600 hover:text-indigo-700" href="tel:+917058266244">+91-7058266244</a>.</p>
 
             <h2 className="text-2xl font-bold text-gray-900 mt-8">5. Processing Time</h2>
             <p className="text-gray-700">If approved, refunds are typically processed within 5–10 business days to the original payment method. Processing times may vary by bank or payment provider.</p>

@@ -59,7 +59,7 @@ export default function PrivacyPolicyPage() {
             <p className="text-gray-700">You may request access, correction, or deletion of your personal data, subject to legal requirements.</p>
 
             <h2 className="text-2xl font-bold text-gray-900 mt-8">Contact Us</h2>
-            <p className="text-gray-700">If you have questions about this policy, contact us at <a className="text-indigo-600 hover:text-indigo-700" href="mailto:support@adbix.app">support@adbix.app</a> or call <a className="text-indigo-600 hover:text-indigo-700" href="tel:+917058266244">+91-7058266244</a>.</p>
+            <p className="text-gray-700">If you have questions about this policy, contact us at <a className="text-indigo-600 hover:text-indigo-700" href="mailto:support@adbix.in">support@adbix.in</a> or call <a className="text-indigo-600 hover:text-indigo-700" href="tel:+917058266244">+91-7058266244</a>.</p>
 
             <p className="text-gray-500 mt-8">We may update this Privacy Policy from time to time. We encourage you to review it periodically.</p>
           </div>

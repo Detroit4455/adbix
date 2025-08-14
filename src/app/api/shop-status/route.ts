@@ -20,8 +20,13 @@ export async function GET(request: NextRequest) {
       { projection: { shopStatus: 1 } }
     );
 
+    // Convert old status values to new format for backward compatibility
+    let currentStatus = user?.shopStatus || 'CLOSED';
+    if (currentStatus === 'ON') currentStatus = 'OPEN';
+    if (currentStatus === 'OFF') currentStatus = 'CLOSED';
+
     return NextResponse.json({
-      status: user?.shopStatus || 'OFF'
+      status: currentStatus
     });
   } catch (error) {
     console.error('Error fetching shop status:', error);
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const { status, userId } = await request.json();
     
-    if (!status || !['ON', 'OFF'].includes(status)) {
+    if (!status || !['OPEN', 'CLOSED'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 

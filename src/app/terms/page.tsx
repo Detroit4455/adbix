@@ -63,7 +63,7 @@ export default function TermsPage() {
             <p className="text-gray-700">We may update these Terms from time to time. Material changes will be posted on this page. Continued use of the Service after changes constitutes acceptance.</p>
 
             <h2 className="text-2xl font-bold text-gray-900 mt-8">10. Contact Us</h2>
-            <p className="text-gray-700">Questions about these Terms? Contact <a className="text-indigo-600 hover:text-indigo-700" href="mailto:support@adbix.app">support@adbix.app</a> or call <a className="text-indigo-600 hover:text-indigo-700" href="tel:+917058266244">+91-7058266244</a>.</p>
+            <p className="text-gray-700">Questions about these Terms? Contact <a className="text-indigo-600 hover:text-indigo-700" href="mailto:support@adbix.in">support@adbix.in</a> or call <a className="text-indigo-600 hover:text-indigo-700" href="tel:+917058266244">+91-7058266244</a>.</p>
 
             <p className="text-gray-500 mt-8">If any provision of these Terms is found unenforceable, the remaining provisions will remain in effect.</p>
           </div>

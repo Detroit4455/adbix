@@ -12,14 +12,22 @@ export async function middleware(request: NextRequest) {
   // For dashboard routes, check authentication
   if (path.startsWith('/dashboard')) {
     try {
+      const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+      if (!nextAuthSecret) {
+        console.error('NEXTAUTH_SECRET environment variable is not set');
+        const url = new URL('/login', request.url);
+        url.searchParams.set('error', 'configuration');
+        return NextResponse.redirect(url);
+      }
+
       const token = await getToken({ 
         req: request,
-        secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production'
+        secret: nextAuthSecret
       });
       
       console.log('Middleware - Path:', path);
       console.log('Middleware - Token found:', !!token);
-      console.log('Middleware - Token data:', token ? { id: token.id, mobileNumber: token.mobileNumber } : 'No token');
+      // Remove sensitive token data from logs for security
       
       // If the user is not authenticated, redirect to the login page
       if (!token) {

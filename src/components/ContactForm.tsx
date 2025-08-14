@@ -6,6 +6,7 @@ export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    mobile: '',
     subject: '',
     message: ''
   });
@@ -40,7 +41,7 @@ export default function ContactForm() {
       }
       
       setFormStatus({ submitting: false, success: true, error: '' });
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: '', email: '', mobile: '', subject: '', message: '' });
       
       // Reset success message after 5 seconds
       setTimeout(() => {
@@ -82,17 +83,30 @@ export default function ContactForm() {
             />
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor="mobile" className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
             <input
-              type="email"
-              id="email"
-              value={formData.email}
+              type="tel"
+              id="mobile"
+              value={formData.mobile}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
-              placeholder="your@email.com"
+              placeholder="+91-XXXXXXXXXX"
               required
             />
           </div>
+        </div>
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Email <span className="text-gray-500 text-xs">(Optional)</span>
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
+            placeholder="your@email.com"
+          />
         </div>
         <div>
           <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">Subject</label>

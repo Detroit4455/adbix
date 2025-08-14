@@ -125,16 +125,16 @@ export default function S3WebsiteUpload() {
 
   return (
     <div className="h-full">
-      <div className="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="flex items-center mb-3 sm:mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
-        <h2 className="text-lg font-bold text-gray-800">Upload Your Website to S3</h2>
+        <h2 className="text-base sm:text-lg font-bold text-gray-800">Upload Your Website to S3</h2>
       </div>
       
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all mb-5
+        className={`border-2 border-dashed rounded-xl p-4 sm:p-6 lg:p-8 text-center cursor-pointer transition-all mb-4 sm:mb-5
           ${isDragActive 
             ? 'border-indigo-500 bg-indigo-50' 
             : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'}`}
@@ -152,22 +152,22 @@ export default function S3WebsiteUpload() {
           </div>
         ) : (
           <div>
-            <div className="flex justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
             </div>
-            <p className="text-gray-700 font-medium mb-2">
+            <p className="text-gray-700 font-medium mb-2 text-sm sm:text-base">
               {isDragActive
                 ? "Drop your ZIP archive here"
                 : "Drag and drop your website ZIP archive here"}
             </p>
-            <p className="text-sm text-gray-500 mb-3">
+            <p className="text-xs sm:text-sm text-gray-500 mb-3">
               or click to select ZIP file
             </p>
             <button 
               type="button"
-              className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white text-xs sm:text-sm rounded-lg hover:bg-indigo-700 transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               Select ZIP File

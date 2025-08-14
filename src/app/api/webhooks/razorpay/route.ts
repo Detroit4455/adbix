@@ -4,6 +4,150 @@ import Subscription from '@/models/Subscription';
 import RazorpayService, { RAZORPAY_CONFIG, isRazorpayConfigured } from '@/lib/razorpay';
 import { subscriptionCache } from '@/lib/subscriptionCache';
 
+// Simple in-memory cache for webhook replay protection
+const webhookCache = new Map<string, number>();
+const WEBHOOK_REPLAY_WINDOW = 5 * 60 * 1000; // 5 minutes
+const MAX_WEBHOOK_REQUESTS_PER_MINUTE = 100;
+const webhookRateLimit = new Map<string, { count: number; resetTime: number }>();
+
+/**
+ * Check if webhook is a replay based on event ID and timestamp
+ */
+function isWebhookReplay(eventId: string, timestamp: number): boolean {
+  const now = Date.now();
+  const cacheKey = eventId;
+  
+  // Clean old entries
+  for (const [key, time] of webhookCache.entries()) {
+    if (now - time > WEBHOOK_REPLAY_WINDOW) {
+      webhookCache.delete(key);
+    }
+  }
+  
+  // Check if we've seen this event recently
+  if (webhookCache.has(cacheKey)) {
+    return true; // Replay detected
+  }
+  
+  // Store this event
+  webhookCache.set(cacheKey, now);
+  return false;
+}
+
+/**
+ * Simple rate limiting for webhook endpoint
+ */
+function isRateLimited(clientId: string): boolean {
+  const now = Date.now();
+  const oneMinute = 60 * 1000;
+  
+  if (!webhookRateLimit.has(clientId)) {
+    webhookRateLimit.set(clientId, { count: 1, resetTime: now + oneMinute });
+    return false;
+  }
+  
+  const rateData = webhookRateLimit.get(clientId)!;
+  
+  if (now > rateData.resetTime) {
+    // Reset the counter
+    rateData.count = 1;
+    rateData.resetTime = now + oneMinute;
+    return false;
+  }
+  
+  if (rateData.count >= MAX_WEBHOOK_REQUESTS_PER_MINUTE) {
+    return true; // Rate limited
+  }
+  
+  rateData.count++;
+  return false;
+}
+
+/**
+ * Helper function to extract minimal, non-sensitive payment method details
+ */
+function extractMinimalPaymentData(paymentData: any): any {
+  if (!paymentData?.method) return null;
+
+  const baseDetails = {
+    paymentId: paymentData.id,
+    amount: paymentData.amount,
+    currency: paymentData.currency,
+    status: paymentData.status,
+    capturedAt: paymentData.captured_at ? new Date(paymentData.captured_at * 1000) : undefined,
+    method: paymentData.method
+  };
+
+  // Extract only safe, non-PCI data based on payment method
+  switch (paymentData.method) {
+    case 'card':
+      if (paymentData.card) {
+        return {
+          type: 'card' as const,
+          details: {
+            ...baseDetails,
+            last4: paymentData.card.last4,
+            network: paymentData.card.network,
+            issuer: paymentData.card.issuer,
+            type: paymentData.card.type // debit/credit
+          }
+        };
+      }
+      break;
+    
+    case 'upi':
+      if (paymentData.upi) {
+        // Mask UPI VPA for privacy
+        const vpa = String(paymentData.upi.vpa || '');
+        const maskedVpa = vpa.replace(/^(.).+(@.*)$/, '$1***$2');
+        return {
+          type: 'upi' as const,
+          details: {
+            ...baseDetails,
+            vpa: maskedVpa
+          }
+        };
+      }
+      break;
+    
+    case 'netbanking':
+      if (paymentData.bank) {
+        return {
+          type: 'netbanking' as const,
+          details: {
+            ...baseDetails,
+            bank: paymentData.bank
+          }
+        };
+      }
+      break;
+    
+    case 'wallet':
+      if (paymentData.wallet) {
+        return {
+          type: 'wallet' as const,
+          details: {
+            ...baseDetails,
+            wallet: paymentData.wallet
+          }
+        };
+      }
+      break;
+    
+    default:
+      return {
+        type: paymentData.method as 'card' | 'upi' | 'netbanking' | 'wallet',
+        details: baseDetails
+      };
+  }
+
+  // Fallback for unknown payment methods
+  return {
+    type: paymentData.method as 'card' | 'upi' | 'netbanking' | 'wallet',
+    details: baseDetails
+  };
+}
+
 /**
  * Helper function to save subscription and invalidate cache
  */
@@ -24,6 +168,13 @@ export async function POST(request: NextRequest) {
     if (!isRazorpayConfigured()) {
       console.error('Razorpay webhook received but Razorpay not configured');
       return NextResponse.json({ error: 'Payment service not configured' }, { status: 503 });
+    }
+
+    // Rate limiting based on IP address
+    const clientIp = request.ip || request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    if (isRateLimited(clientIp)) {
+      console.warn('Webhook rate limit exceeded for IP:', clientIp);
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }
 
     const body = await request.text();
@@ -49,7 +200,20 @@ export async function POST(request: NextRequest) {
     const webhookData = JSON.parse(body);
     const { event, payload } = webhookData;
 
-    console.log('Received Razorpay webhook:', event, payload);
+    // Replay protection
+    const eventId = payload?.payment?.entity?.id || payload?.subscription?.entity?.id || `${event}_${Date.now()}`;
+    if (isWebhookReplay(eventId, Date.now())) {
+      console.warn('Webhook replay detected for event:', eventId);
+      return NextResponse.json({ error: 'Duplicate webhook detected' }, { status: 409 });
+    }
+
+    // Log webhook securely without sensitive payment data
+    console.log('Received Razorpay webhook:', {
+      event,
+      paymentId: payload?.payment?.entity?.id,
+      subscriptionId: payload?.subscription?.entity?.id,
+      timestamp: new Date().toISOString()
+    });
 
     await dbConnect();
 
@@ -136,7 +300,14 @@ async function handleSubscriptionActivated(subscriptionData: any) {
 
     subscription.webhookEvents.push({
       eventType: 'subscription.activated',
-      eventData: subscriptionData,
+      eventData: {
+        subscriptionId: subscriptionData.id,
+        status: subscriptionData.status,
+        startAt: subscriptionData.start_at,
+        chargeAt: subscriptionData.charge_at,
+        currentStart: subscriptionData.current_start,
+        currentEnd: subscriptionData.current_end
+      },
       processedAt: new Date()
     });
 
@@ -175,28 +346,21 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
     subscription.currentPeriodEnd = subscriptionData.current_end ? 
       new Date(subscriptionData.current_end * 1000) : subscription.currentPeriodEnd;
 
-    // Store payment method details if available
-    if (paymentData.method) {
-      subscription.paymentMethod = {
-        type: paymentData.method as 'card' | 'upi' | 'netbanking' | 'wallet',
-        details: {
-          paymentId: paymentData.id,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          status: paymentData.status,
-          capturedAt: paymentData.captured_at ? new Date(paymentData.captured_at * 1000) : undefined,
-          description: paymentData.description,
-          method: paymentData.method,
-          methodDetails: paymentData[paymentData.method] || {}
-        }
-      };
+    // Store minimal, non-sensitive payment method details
+    const minimalPaymentData = extractMinimalPaymentData(paymentData);
+    if (minimalPaymentData) {
+      subscription.paymentMethod = minimalPaymentData;
     }
 
     subscription.webhookEvents.push({
       eventType: wasFirstPayment ? 'subscription.first_payment_charged' : 'subscription.charged',
       eventData: { 
-        payment: paymentData, 
-        subscription: subscriptionData,
+        paymentId: paymentData.id,
+        subscriptionId: subscriptionData.id,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        status: paymentData.status,
+        method: paymentData.method,
         wasFirstPayment,
         activatedFromAuthenticated: wasFirstPayment && subscription.status === 'authenticated'
       },
@@ -238,7 +402,13 @@ async function handleSubscriptionCompleted(subscriptionData: any) {
 
     subscription.webhookEvents.push({
       eventType: 'subscription.completed',
-      eventData: subscriptionData,
+      eventData: {
+        subscriptionId: subscriptionData.id,
+        status: subscriptionData.status,
+        endedAt: subscriptionData.ended_at,
+        paidCount: subscriptionData.paid_count,
+        remainingCount: subscriptionData.remaining_count
+      },
       processedAt: new Date()
     });
 

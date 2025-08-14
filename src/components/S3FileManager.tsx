@@ -412,13 +412,13 @@ Start writing your markdown content here.
   }
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-xl font-bold">S3 Website Files</h2>
-          <p className="text-sm text-gray-600 mt-1">Files marked as "Editable" can be modified using the built-in code editor.</p>
+    <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg sm:text-xl font-bold">S3 Website Files</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Files marked as "Editable" can be modified using the built-in code editor.</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2 sm:space-x-2">
           <input
             type="file"
             ref={fileInputRef}
@@ -428,29 +428,31 @@ Start writing your markdown content here.
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 bg-green-500 bg-opacity-80 text-white text-xs rounded hover:bg-green-600 transition"
+            className="px-3 py-2 bg-green-500 bg-opacity-80 text-white text-xs sm:text-sm rounded hover:bg-green-600 transition font-medium"
             disabled={isUploading}
           >
             {isUploading ? 'Uploading...' : 'Upload'}
           </button>
           <button
             onClick={() => setIsCreatingFolder(true)}
-            className="px-3 py-1.5 bg-indigo-500 bg-opacity-80 text-white text-xs rounded hover:bg-indigo-600 transition"
+            className="px-3 py-2 bg-indigo-500 bg-opacity-80 text-white text-xs sm:text-sm rounded hover:bg-indigo-600 transition font-medium"
             disabled={isCreatingFolder || isCreatingFile}
           >
-            New Folder
+            <span className="hidden sm:inline">New Folder</span>
+            <span className="sm:hidden">Folder</span>
           </button>
           <button
             onClick={() => setIsCreatingFile(true)}
-            className="px-3 py-1.5 bg-green-500 bg-opacity-80 text-white text-xs rounded hover:bg-green-600 transition"
+            className="px-3 py-2 bg-green-500 bg-opacity-80 text-white text-xs sm:text-sm rounded hover:bg-green-600 transition font-medium"
             disabled={isCreatingFolder || isCreatingFile}
           >
-            New File
+            <span className="hidden sm:inline">New File</span>
+            <span className="sm:hidden">File</span>
           </button>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-2 py-1 text-xs border rounded bg-white"
+            className="px-2 py-2 text-xs sm:text-sm border rounded bg-white min-w-0 flex-shrink-0"
           >
             <option value="all">All Files</option>
             <option value="editable">Editable Files</option>
@@ -462,21 +464,24 @@ Start writing your markdown content here.
             <option value="application/pdf">PDF</option>
             <option value="text/plain">Text</option>
           </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'name' | 'size' | 'date')}
-            className="px-2 py-1 text-xs border rounded bg-white"
-          >
-            <option value="name">Sort by Name</option>
-            <option value="size">Sort by Size</option>
-            <option value="date">Sort by Date</option>
-          </select>
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="px-2 py-1 bg-gray-100 text-xs rounded hover:bg-gray-200"
-          >
-            {sortOrder === 'asc' ? '↑' : '↓'}
-          </button>
+          <div className="flex">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'size' | 'date')}
+              className="px-2 py-2 text-xs sm:text-sm border rounded-l bg-white min-w-0 flex-shrink-0"
+            >
+              <option value="name">Name</option>
+              <option value="size">Size</option>
+              <option value="date">Date</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-2 py-2 bg-gray-100 text-xs sm:text-sm border border-l-0 rounded-r hover:bg-gray-200 flex-shrink-0"
+              title={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -580,43 +585,47 @@ Start writing your markdown content here.
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Modified</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Size</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Last Modified</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {sortedAndFilteredFiles.map((file) => (
               <tr key={file.path} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 sm:px-6 py-3 sm:py-4">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
+                    <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
                       {getFileIcon(file)}
                     </div>
-                    <div className="ml-4">
+                    <div className="ml-2 sm:ml-4 min-w-0 flex-1">
                       {(file.isDirectory || file.type === 'directory') ? (
                         <button
                           onClick={() => handleFolderClick(file.path)}
-                          className="text-indigo-600 hover:text-indigo-500 font-medium"
+                          className="text-indigo-600 hover:text-indigo-500 font-medium text-sm truncate"
                         >
                           {file.name}/
                         </button>
                       ) : isEditableFile(file) ? (
-                        <div className="flex items-center">
-                          <div className="text-sm font-medium text-gray-900">{file.name}</div>
-                          <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded">Editable</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                          <div className="text-sm font-medium text-gray-900 truncate">{file.name}</div>
+                          <span className="mt-1 sm:mt-0 sm:ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded w-fit">Editable</span>
                         </div>
                       ) : (
-                        <div className="text-sm font-medium text-gray-900">{file.name}</div>
+                        <div className="text-sm font-medium text-gray-900 truncate">{file.name}</div>
                       )}
+                      {/* Show size and date on mobile under file name */}
+                      <div className="sm:hidden mt-1 text-xs text-gray-500">
+                        {!file.isDirectory && formatFileSize(file.size)} • {formatDate(file.lastModified)}
+                      </div>
                       {file.type.startsWith('image/') && (
                         <div className="mt-2">
                           <Image
                             src={`https://dt-web-sites.s3.ap-south-1.amazonaws.com/sites/${session?.user?.mobileNumber}/${file.path}`}
                             alt={file.name}
-                            width={100}
-                            height={100}
+                            width={80}
+                            height={80}
                             className="object-contain"
                           />
                         </div>
@@ -624,14 +633,14 @@ Start writing your markdown content here.
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 sm:px-6 py-3 sm:py-4 text-sm text-gray-500 hidden sm:table-cell">
                   {file.isDirectory ? '-' : formatFileSize(file.size)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 sm:px-6 py-3 sm:py-4 text-sm text-gray-500 hidden md:table-cell">
                   {formatDate(file.lastModified)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div className="flex space-x-2">
+                <td className="px-3 sm:px-6 py-3 sm:py-4 text-sm text-gray-500">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                     {!file.isDirectory && (
                       <>
                         {/* Preview Button */}
@@ -640,14 +649,15 @@ Start writing your markdown content here.
                             const fileUrl = `/site/${session?.user?.mobileNumber}/${file.path}`;
                             window.open(fileUrl, '_blank');
                           }}
-                          className="text-blue-600 hover:text-blue-900 px-2 py-1 text-xs border border-blue-200 rounded hover:bg-blue-50"
+                          className="text-blue-600 hover:text-blue-900 px-2 py-1 text-xs border border-blue-200 rounded hover:bg-blue-50 w-full sm:w-auto text-center"
                           title="Preview file in new tab"
                         >
                           <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
-                          Preview
+                          <span className="hidden sm:inline">Preview</span>
+                          <span className="sm:hidden">View</span>
                         </button>
 
                         {/* Live Edit Button - Only for HTML files */}
@@ -659,13 +669,14 @@ Start writing your markdown content here.
                                 filePath: file.path
                               });
                             }}
-                            className="text-green-600 hover:text-green-900 px-2 py-1 text-xs border border-green-200 rounded hover:bg-green-50"
+                            className="text-green-600 hover:text-green-900 px-2 py-1 text-xs border border-green-200 rounded hover:bg-green-50 w-full sm:w-auto text-center"
                             title="Open in live editor for visual editing"
                           >
                             <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-1.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            Live Edit
+                            <span className="hidden sm:inline">Live Edit</span>
+                            <span className="sm:hidden">Live</span>
                           </button>
                         )}
 
@@ -673,13 +684,14 @@ Start writing your markdown content here.
                         {isEditableFile(file) && (
                           <button
                             onClick={() => setEditingFile(file.path)}
-                            className="text-purple-600 hover:text-purple-900 px-2 py-1 text-xs border border-purple-200 rounded hover:bg-purple-50"
+                            className="text-purple-600 hover:text-purple-900 px-2 py-1 text-xs border border-purple-200 rounded hover:bg-purple-50 w-full sm:w-auto text-center"
                             title="Edit file content with code editor"
                           >
                             <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                             </svg>
-                            Edit HTML
+                            <span className="hidden sm:inline">Edit HTML</span>
+                            <span className="sm:hidden">Edit</span>
                           </button>
                         )}
                       </>
@@ -687,18 +699,20 @@ Start writing your markdown content here.
                     {(file.isDirectory || file.type === 'directory') ? (
                       <button
                         onClick={() => handleDelete(file.name, file.path, true)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:text-red-900 px-2 py-1 text-xs border border-red-200 rounded hover:bg-red-50 w-full sm:w-auto text-center"
                         title="Delete folder and all contents"
                       >
-                        Delete
+                        <span className="hidden sm:inline">Delete Folder</span>
+                        <span className="sm:hidden">Delete</span>
                       </button>
                     ) : (
                       <button
                         onClick={() => handleDelete(file.name, file.path, false)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:text-red-900 px-2 py-1 text-xs border border-red-200 rounded hover:bg-red-50 w-full sm:w-auto text-center"
                         title="Delete file"
                       >
-                        Delete
+                        <span className="hidden sm:inline">Delete File</span>
+                        <span className="sm:hidden">Delete</span>
                       </button>
                     )}
                   </div>

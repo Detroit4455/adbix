@@ -107,11 +107,41 @@ export default function WidgetsPage() {
 ></iframe>`;
     
     try {
-      await navigator.clipboard.writeText(embedCode);
-      setCopiedWidgetId(widget.id);
-      setTimeout(() => setCopiedWidgetId(null), 2000);
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(embedCode);
+        setCopiedWidgetId(widget.id);
+        setTimeout(() => setCopiedWidgetId(null), 2000);
+      } else {
+        // Fallback for older browsers or when clipboard API is not available
+        const textArea = document.createElement('textarea');
+        textArea.value = embedCode;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            setCopiedWidgetId(widget.id);
+            setTimeout(() => setCopiedWidgetId(null), 2000);
+          } else {
+            throw new Error('Copy command failed');
+          }
+        } catch (fallbackErr) {
+          console.error('Fallback copy failed:', fallbackErr);
+          alert('Failed to copy embed code. Please copy manually.');
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
     } catch (err) {
       console.error('Failed to copy embed code:', err);
+      // Final fallback - show the code in an alert for manual copying
+      alert(`Embed code:\n\n${embedCode}\n\nPlease copy this code manually.`);
     }
   };
 
@@ -236,31 +266,28 @@ export default function WidgetsPage() {
               {/* Embed Code Section */}
               <div className="px-6 pb-4">
                 <div className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium text-gray-900 flex items-center">
                       <CodeBracketIcon className="w-4 h-4 mr-1" />
                       Embed Code
                     </h4>
                     <button
                       onClick={() => copyEmbedCode(widget)}
-                      className="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors"
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
                     >
                       {copiedWidgetId === widget.id ? (
                         <>
-                          <CheckIcon className="w-3 h-3 mr-1" />
+                          <CheckIcon className="w-4 h-4 mr-2" />
                           Copied!
                         </>
                       ) : (
                         <>
-                          <DocumentDuplicateIcon className="w-3 h-3 mr-1" />
-                          Copy
+                          <DocumentDuplicateIcon className="w-4 h-4 mr-2" />
+                          Copy Embed Code
                         </>
                       )}
                     </button>
                   </div>
-                  <code className="block bg-gray-100 p-3 rounded text-xs font-mono text-gray-700 overflow-x-auto">
-                    {`<iframe src="${baseUrl}/widget-preview/${userMobileNumber}/${widget.id}" width="250" height="150" frameborder="0" style="border: none;"></iframe>`}
-                  </code>
                 </div>
               </div>
 

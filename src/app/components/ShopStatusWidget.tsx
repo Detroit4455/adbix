@@ -17,7 +17,7 @@ export default function ShopStatusWidget({
   height = '100px'
 }: ShopStatusWidgetProps) {
   const { data: session } = useSession();
-  const [status, setStatus] = useState<'ON' | 'OFF'>('OFF');
+  const [status, setStatus] = useState<'OPEN' | 'CLOSED'>('CLOSED');
   const [loading, setLoading] = useState(true);
 
   const fetchStatus = useCallback(async () => {
@@ -39,7 +39,7 @@ export default function ShopStatusWidget({
   const toggleStatus = async () => {
     if (!showControls || !session?.user) return;
     
-    const newStatus = status === 'ON' ? 'OFF' : 'ON';
+    const newStatus = status === 'OPEN' ? 'CLOSED' : 'OPEN';
     try {
       const response = await fetch('/api/shop-status', {
         method: 'POST',
@@ -70,7 +70,7 @@ export default function ShopStatusWidget({
     borderRadius: '8px',
     cursor: showControls ? 'pointer' : 'default',
     transition: 'background-color 0.3s ease',
-    backgroundColor: status === 'ON' ? '#dcfce7' : '#fecaca',
+    backgroundColor: status === 'OPEN' ? '#dcfce7' : '#fecaca',
     margin: 0,
     padding: 0,
     boxSizing: 'border-box'
@@ -79,7 +79,7 @@ export default function ShopStatusWidget({
   const statusStyle: React.CSSProperties = {
     fontSize: height === '100vh' ? '4rem' : '2rem',
     fontWeight: 'bold',
-    color: status === 'ON' ? '#16a34a' : '#dc2626',
+    color: status === 'OPEN' ? '#16a34a' : '#dc2626',
     margin: 0
   };
 

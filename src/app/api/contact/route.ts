@@ -3,12 +3,12 @@ import clientPromise from '@/lib/mongodb';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, subject, message } = await request.json();
+    const { name, email, mobile, subject, message } = await request.json();
     
     // Validate input
-    if (!name || !email || !subject || !message) {
+    if (!name || !mobile || !subject || !message) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'Name, mobile number, subject, and message are required' },
         { status: 400 }
       );
     }
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
     // Insert the contact form submission
     const result = await db.collection('contacts').insertOne({
       name,
-      email,
+      email: email || null, // Store as null if not provided
+      mobile,
       subject,
       message,
       createdAt: new Date(),

@@ -235,12 +235,12 @@ export default function Home() {
               {
                 icon: CloudArrowUpIcon,
                 title: 'Instant Deployment',
-                description: 'Upload your files and go live in seconds with automatic optimization'
+                description: 'Upload your files instantly or import templates and go live'
               },
               {
                 icon: ServerIcon,
                 title: 'Reliable Infrastructure',
-                description: 'Built on Amazon S3 with global CDN for maximum performance'
+                description: 'Built on Adbix with global CDN for maximum performance'
               },
               {
                 icon: ShieldCheckIcon,
@@ -303,8 +303,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <div className="col-span-1 md:col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+            <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
                 <div className="h-10 w-10 mr-3">
                   <img 
@@ -337,6 +337,30 @@ export default function Home() {
                 <span className="block text-gray-400">Widget Library</span>
                 <span className="block text-gray-400">Image Management</span>
                 <span className="block text-gray-400">SSL Security</span>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Support</h3>
+              <div className="space-y-2">
+                <a 
+                  href="mailto:support@adbix.in" 
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  support@adbix.in
+                </a>
+                <a 
+                  href="tel:+917058266244" 
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  +91-7058266244
+                </a>
+                <Link 
+                  href="/contact" 
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Contact Us
+                </Link>
               </div>
             </div>
           </div>
