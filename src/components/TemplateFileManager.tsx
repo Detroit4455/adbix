@@ -42,6 +42,7 @@ export default function TemplateFileManager() {
   const { data: session } = useSession();
   const [templates, setTemplates] = useState<WebTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<WebTemplate | null>(null);
+  const [templateSearch, setTemplateSearch] = useState('');
   const [files, setFiles] = useState<S3FileInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -429,8 +430,28 @@ This is a markdown file. You can use markdown syntax to format your content.
     <div className="space-y-6">
       {/* Template Selection */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Select Template</h3>
-        
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Select Template</h3>
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              value={templateSearch}
+              onChange={(e) => setTemplateSearch(e.target.value)}
+              placeholder="Search templates..."
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
+            />
+            {templateSearch && (
+              <button
+                type="button"
+                onClick={() => setTemplateSearch('')}
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
         {templates.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-gray-400 text-6xl mb-4">📁</div>
@@ -438,35 +459,75 @@ This is a markdown file. You can use markdown syntax to format your content.
             <p className="text-gray-600">Create a template first to manage its files.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.map((template) => (
-              <div
-                key={template._id}
-                onClick={() => handleTemplateSelect(template)}
-                className={`cursor-pointer rounded-lg border-2 transition-all duration-200 ${
-                  selectedTemplate?._id === template._id
-                    ? 'border-indigo-500 bg-indigo-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-800 truncate">{template.name}</h4>
-                    <div className="flex items-center space-x-2">
-                      <span className={`inline-block w-2 h-2 rounded-full ${template.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                      {template.metadata.hasIndexHtml && (
-                        <span className="text-green-500 text-xs">✓</span>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2 truncate">{template.description}</p>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span className="capitalize">{template.businessCategory}</span>
-                    <span>{template.metadata.fileCount} files</span>
-                  </div>
-                </div>
+          <div className="overflow-x-auto">
+            {templates.filter(t => {
+              const term = templateSearch.trim().toLowerCase();
+              if (!term) return true;
+              return (
+                t.name.toLowerCase().includes(term) ||
+                t.description.toLowerCase().includes(term) ||
+                t.businessCategory.toLowerCase().includes(term) ||
+                t.templateType.toLowerCase().includes(term)
+              );
+            }).length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">🔎</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No matching templates</h3>
+                <p className="text-gray-600 mb-4">Try a different search term or clear the search.</p>
               </div>
-            ))}
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Template</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {templates
+                    .filter(t => {
+                      const term = templateSearch.trim().toLowerCase();
+                      if (!term) return true;
+                      return (
+                        t.name.toLowerCase().includes(term) ||
+                        t.description.toLowerCase().includes(term) ||
+                        t.businessCategory.toLowerCase().includes(term) ||
+                        t.templateType.toLowerCase().includes(term)
+                      );
+                    })
+                    .map((template) => (
+                      <tr key={template._id} className={selectedTemplate?._id === template._id ? 'bg-indigo-50' : ''}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{template.name}</div>
+                          <div className="text-sm text-gray-500">ID: {template.templateId}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{template.businessCategory}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{template.templateType}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{template.metadata.fileCount}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {template.metadata.hasIndexHtml ? (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ready</span>
+                          ) : (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">No files</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleTemplateSelect(template)}
+                            className={`px-3 py-1 rounded border ${selectedTemplate?._id === template._id ? 'border-indigo-500 text-indigo-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                          >
+                            {selectedTemplate?._id === template._id ? 'Selected' : 'Select'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>

@@ -1,38 +1,52 @@
 import React from 'react';
 import Link from 'next/link';
+import { connectToDatabase } from '@/lib/db';
+import { connectMongoose } from '@/lib/db';
+import RbacSettings from '@/models/RbacSettings';
+import User from '@/models/User';
 
-export default function RolesManagementPage() {
-  // This would normally fetch data from your database
-  const roles = [
-    { 
-      id: 1, 
-      name: 'Admin', 
-      description: 'Full system access with all permissions',
-      userCount: 2,
-      permissions: ['manage_users', 'manage_roles', 'manage_content', 'view_statistics', 'configure_system']
-    },
-    { 
-      id: 2, 
-      name: 'User', 
-      description: 'Standard user with limited access',
-      userCount: 120,
-      permissions: ['view_content', 'edit_own_content']
-    },
-    { 
-      id: 3, 
-      name: 'Editor', 
-      description: 'Can create and edit content',
-      userCount: 15,
-      permissions: ['view_content', 'edit_content', 'create_content']
-    },
-    { 
-      id: 4, 
-      name: 'Viewer', 
-      description: 'Read-only access to content',
-      userCount: 45,
-      permissions: ['view_content']
-    }
-  ];
+function toTitle(str: string) {
+  return str
+    .replace(/[-_]+/g, ' ')
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+export default async function RolesManagementPage() {
+  // Fetch role list from settings
+  const { db } = await connectToDatabase();
+  const settings = await db.collection('settings').findOne({ type: 'roles' });
+  const roleNames: string[] = settings?.roles || ['admin', 'user', 'devops', 'manager'];
+
+  // Ensure RBAC exists and fetch matrix
+  await RbacSettings.initializeDefaultSettings();
+  const rbac = await RbacSettings.findOne().lean();
+  const matrix = rbac?.matrix || [];
+
+  // Build role cards with live counts and resources
+  const roles = await Promise.all(
+    roleNames.map(async (name, idx) => {
+      const count = await User.countDocuments({ role: name });
+      const accessibleResources = matrix
+        .filter((m: any) => (m.roles instanceof Map ? m.roles.get(name) : m.roles?.[name]) === true)
+        .map((m: any) => toTitle(m.resource));
+
+      let description = 'Custom role';
+      if (name === 'admin') description = 'Full system access with all permissions';
+      else if (name === 'user') description = 'Standard user with limited access';
+      else if (name === 'devops') description = 'DevOps engineer with deployment access';
+      else if (name === 'manager') description = 'Project/Team manager access';
+
+      return {
+        id: idx + 1,
+        name: toTitle(name),
+        description,
+        userCount: count,
+        permissions: accessibleResources
+      };
+    })
+  );
 
   return (
     <div>
@@ -49,9 +63,6 @@ export default function RolesManagementPage() {
             </svg>
             Manage Role Settings
           </Link>
-          <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-            Add New Role
-          </button>
         </div>
       </div>
 
@@ -63,38 +74,27 @@ export default function RolesManagementPage() {
                 <h3 className="text-lg font-semibold text-gray-800">{role.name}</h3>
                 <p className="text-sm text-gray-500">{role.description}</p>
               </div>
-              <div className="flex space-x-2">
-                <button className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors text-sm">
-                  Edit
-                </button>
-                {role.name !== 'Admin' && role.name !== 'User' && (
-                  <button className="px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm">
-                    Delete
-                  </button>
-                )}
+              <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                {role.userCount} Users
               </div>
             </div>
             <div className="px-6 py-4">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-sm font-medium text-gray-700">Permissions</h4>
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  {role.userCount} Users
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {role.permissions.map((permission) => (
-                  <span 
-                    key={permission} 
-                    className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-md"
-                  >
-                    {permission.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                  </span>
-                ))}
-              </div>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Accessible Resources</h4>
+              {role.permissions.length === 0 ? (
+                <div className="text-xs text-gray-500">No explicit resources assigned</div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {role.permissions.map((perm: string) => (
+                    <span key={perm} className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-md">
+                      {perm}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
     </div>
   );
-} 
+}

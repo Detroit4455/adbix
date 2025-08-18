@@ -58,6 +58,7 @@ const WebTemplateSchema = new Schema<IWebTemplate>({
       'technology',
       'creative',
       'non-profit',
+      'beauty-salon',
       'other'
     ]
   },
@@ -151,6 +152,7 @@ WebTemplateSchema.statics.getBusinessCategories = function() {
     'technology',
     'creative',
     'non-profit',
+    'beauty-salon',
     'other'
   ];
 };

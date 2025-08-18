@@ -72,7 +72,7 @@ export default function TemplateManager() {
   // Business categories and template types
   const businessCategories = [
     'e-commerce', 'restaurant', 'portfolio', 'business', 'blog', 'education',
-    'healthcare', 'real-estate', 'travel', 'fitness', 'technology', 'creative', 'non-profit', 'other'
+    'healthcare', 'real-estate', 'travel', 'fitness', 'technology', 'creative', 'non-profit', 'beauty-salon', 'other'
   ];
 
   const templateTypes = [

@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import ShopStatusWidget from '@/app/components/ShopStatusWidget';
 import ImageGalleryWidget from '@/app/components/ImageGalleryWidget';
 import ContactUsWidget from '@/app/components/ContactUsWidget';
-import Navbar from '@/components/Navbar';
-import LeftNavbar from '@/components/LeftNavbar';
 
 interface PreviewWidgetPageProps {
   params: Promise<{
@@ -15,8 +13,6 @@ interface PreviewWidgetPageProps {
 }
 
 export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
   // Since we're now using client components, we need to handle params differently
   const [mobileNumber, setMobileNumber] = useState<string>('');
   const [widgetId, setWidgetId] = useState<string>('');
@@ -30,6 +26,34 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
     };
     extractParams();
   }, [params]);
+
+  // Add CSS reset - must be called before any conditional returns
+  useEffect(() => {
+    // Create and inject CSS reset for clean widget display
+    const style = document.createElement('style');
+    style.textContent = `
+      * {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+      }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        height: 100% !important;
+        width: 100% !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Cleanup function to remove the style when component unmounts
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
 
   // Define widget dimensions based on type
   const getWidgetDimensions = (widgetType: string) => {
@@ -50,45 +74,41 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
   // Show loading state while params are being extracted
   if (!mobileNumber || !widgetId) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <LeftNavbar 
-          isOpen={isSidebarOpen} 
-          onClose={() => setIsSidebarOpen(false)} 
-        />
-        <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
-          <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
-          <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
-          </div>
-        </div>
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f8fafc'
+      }}>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          border: '2px solid #e5e7eb',
+          borderTopColor: '#3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
       </div>
     );
   }
 
-  // Function to render widget content
+  // Function to render widget content - clean widget only
   const renderWidgetContent = () => {
+    const containerStyle = {
+      width: dimensions.width,
+      height: dimensions.height,
+      margin: '0',
+      padding: '0',
+      border: 'none',
+      backgroundColor: 'transparent'
+    };
+
     switch (widgetId) {
-    case 'shop-status':
-      return (
-        <div style={{
-          width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#f8fafc',
-          padding: '20px'
-        }}>
-          <div style={{
-            width: dimensions.width,
-            height: dimensions.height,
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            marginBottom: '40px'
-          }}>
+      case 'shop-status':
+        return (
+          <div style={containerStyle}>
             <ShopStatusWidget 
               showControls={false} 
               userId={mobileNumber}
@@ -96,87 +116,10 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
               height="100%"
             />
           </div>
-          
-          {/* How to Use Section */}
-          <div style={{
-            maxWidth: '500px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #f1f5f9'
-          }}>
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '24px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#3b82f6',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#1e293b',
-                margin: '0'
-              }}>
-                This widget will be part of your website
-              </h3>
-            </div>
-            
-            <div style={{
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              padding: '20px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <p style={{
-                fontSize: '15px',
-                color: '#475569',
-                lineHeight: '1.6',
-                margin: '0',
-                textAlign: 'center'
-              }}>
-                Changes made from here will be reflected on your website.
-                <br />
-                <strong style={{ color: '#1e293b' }}>Manage everything from here - no coding required.</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    case 'image-gallery':
-      return (
-        <div style={{
-          width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#f8fafc',
-          padding: '20px'
-        }}>
-          <div style={{
-            width: dimensions.width,
-            height: dimensions.height,
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            marginBottom: '40px'
-          }}>
+        );
+      case 'image-gallery':
+        return (
+          <div style={containerStyle}>
             <ImageGalleryWidget 
               showControls={false} 
               userId={mobileNumber}
@@ -184,87 +127,10 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
               height="100%"
             />
           </div>
-          
-          {/* How to Use Section */}
-          <div style={{
-            maxWidth: '500px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #f1f5f9'
-          }}>
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '24px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#3b82f6',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#1e293b',
-                margin: '0'
-              }}>
-                This widget will be part of your website
-              </h3>
-            </div>
-            
-            <div style={{
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              padding: '20px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <p style={{
-                fontSize: '15px',
-                color: '#475569',
-                lineHeight: '1.6',
-                margin: '0',
-                textAlign: 'center'
-              }}>
-                Changes made from here will be reflected on your website.
-                <br />
-                <strong style={{ color: '#1e293b' }}>Manage everything from here - no coding required.</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    case 'contact-us':
-      return (
-        <div style={{
-          width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#f8fafc',
-          padding: '20px'
-        }}>
-          <div style={{
-            width: dimensions.width,
-            height: dimensions.height,
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            marginBottom: '40px'
-          }}>
+        );
+      case 'contact-us':
+        return (
+          <div style={containerStyle}>
             <ContactUsWidget 
               showControls={false} 
               userId={mobileNumber}
@@ -272,103 +138,45 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
               height="100%"
             />
           </div>
-          
-          {/* How to Use Section */}
-          <div style={{
-            maxWidth: '500px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #f1f5f9'
+        );
+      default:
+        return (
+          <div style={{ 
+            width: dimensions.width,
+            height: dimensions.height,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            backgroundColor: '#fef3c7',
+            color: '#92400e',
+            fontSize: '14px',
+            textAlign: 'center',
+            border: '1px solid #f59e0b',
+            borderRadius: '4px'
           }}>
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '24px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#3b82f6',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#1e293b',
-                margin: '0'
-              }}>
-                This widget will be part of your website
-              </h3>
-            </div>
-            
-            <div style={{
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              padding: '20px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <p style={{
-                fontSize: '15px',
-                color: '#475569',
-                lineHeight: '1.6',
-                margin: '0',
-                textAlign: 'center'
-              }}>
-                Changes made from here will be reflected on your website.
-                <br />
-                <strong style={{ color: '#1e293b' }}>Manage everything from here - no coding required.</strong>
-              </p>
+            <div>
+              <strong>Widget Not Found!</strong>
+              <br />
+              The requested widget does not exist.
             </div>
           </div>
-        </div>
-      );
-    default:
-      return (
-        <div style={{ 
-          width: '100%', 
-          height: '100vh', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          backgroundColor: '#fef3c7',
-          color: '#92400e',
-          fontSize: '14px',
-          textAlign: 'center',
-          padding: '20px',
-          boxSizing: 'border-box'
-        }}>
-          <div>
-            <strong>Widget Not Found!</strong>
-            <br />
-            The requested widget does not exist.
-          </div>
-        </div>
-      );
+        );
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <LeftNavbar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-      />
-      <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
-        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-          {renderWidgetContent()}
-        </div>
-      </div>
+    <div style={{
+      width: '100%',
+      height: '100vh',
+      margin: '0',
+      padding: '0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'transparent',
+      overflow: 'hidden'
+    }}>
+      {renderWidgetContent()}
     </div>
   );
 } 

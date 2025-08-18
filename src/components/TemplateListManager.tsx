@@ -15,6 +15,7 @@ interface WebTemplate {
   previewImage?: string;
   isActive: boolean;
   isPublic: boolean;
+  customMobileNumber?: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -35,6 +36,7 @@ interface TemplateFormData {
   previewImage: string;
   isActive: boolean;
   isPublic: boolean;
+  customMobileNumber: string;
 }
 
 export default function TemplateListManager() {
@@ -54,7 +56,8 @@ export default function TemplateListManager() {
     tags: '',
     previewImage: '',
     isActive: true,
-    isPublic: true
+    isPublic: true,
+    customMobileNumber: ''
   });
 
   // Filter states
@@ -65,7 +68,7 @@ export default function TemplateListManager() {
   // Business categories and template types
   const businessCategories = [
     'e-commerce', 'restaurant', 'portfolio', 'business', 'blog', 'education',
-    'healthcare', 'real-estate', 'travel', 'fitness', 'technology', 'creative', 'non-profit', 'other'
+    'healthcare', 'real-estate', 'travel', 'fitness', 'technology', 'creative', 'non-profit', 'beauty-salon', 'other'
   ];
 
   const templateTypes = [
@@ -135,7 +138,8 @@ export default function TemplateListManager() {
       tags: template.tags.join(', '),
       previewImage: template.previewImage || '',
       isActive: template.isActive,
-      isPublic: template.isPublic
+      isPublic: template.isPublic,
+      customMobileNumber: template.customMobileNumber || ''
     });
   };
 
@@ -148,10 +152,18 @@ export default function TemplateListManager() {
     setSuccess('');
 
     try {
+      if (!formData.isPublic) {
+        if (!formData.customMobileNumber || !/^\d{10}$/.test(formData.customMobileNumber.trim())) {
+          setError('Mobile number is required for custom templates');
+          return;
+        }
+      }
+
       const payload = { 
         ...formData, 
         templateId: editingTemplate.templateId,
-        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t) 
+        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+        customMobileNumber: formData.isPublic ? null : formData.customMobileNumber.trim()
       };
 
       const response = await fetch('/api/admin/templates', {
@@ -185,7 +197,8 @@ export default function TemplateListManager() {
       tags: '',
       previewImage: '',
       isActive: true,
-      isPublic: true
+      isPublic: true,
+      customMobileNumber: ''
     });
   };
 
@@ -365,6 +378,23 @@ export default function TemplateListManager() {
                     </label>
                   </div>
                 </div>
+
+                {/* Custom Mobile Number (only when Private) */}
+                {!formData.isPublic && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Mobile Number (10 digits) for Private Template *
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.customMobileNumber}
+                      onChange={(e) => setFormData({ ...formData, customMobileNumber: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g. 9876543210"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Required when template is private. Only 10 digits allowed.</p>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">

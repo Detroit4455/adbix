@@ -19,9 +19,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Fetch all users from database
-    const users = await User.find({})
+    // Parse query params for search and pagination
+    const searchParams = request.nextUrl.searchParams;
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limitParam = parseInt(searchParams.get('limit') || '100');
+    const limit = Number.isNaN(limitParam) ? 100 : Math.min(100, Math.max(1, limitParam));
+    const search = (searchParams.get('search') || '').trim();
+
+    // Build filter
+    const filter: any = {};
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      filter.$or = [
+        { name: { $regex: regex } },
+        { email: { $regex: regex } },
+        { mobileNumber: { $regex: regex } }
+      ];
+    }
+
+    // Total count
+    const total = await User.countDocuments(filter);
+
+    // Fetch users with pagination
+    const users = await User.find(filter)
       .select('_id name email mobileNumber role status requireSubscriptionCheck updatedAt')
+      .sort({ updatedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .lean();
 
     // Format users for display
@@ -38,7 +62,15 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      users: formattedUsers
+      users: formattedUsers,
+      pagination: {
+        current: page,
+        pages: Math.ceil(total / limit),
+        total,
+        limit,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
     });
 
   } catch (error) {

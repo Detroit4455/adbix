@@ -415,9 +415,17 @@ export default function BillingPage() {
       const result = await response.json();
       
       if (result.success) {
+        // Get Razorpay key from API
+        const configResponse = await fetch('/api/razorpay-config');
+        const configResult = await configResponse.json();
+        
+        if (!configResponse.ok || !configResult.keyId) {
+          throw new Error('Failed to load payment configuration');
+        }
+
         // Open Razorpay checkout for UPI Autopay
         const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          key: configResult.keyId,
           subscription_id: result.subscription.razorpaySubscriptionId,
           name: 'Web as a Service',
           description: `${plans.find(p => p.planId === selectedPlan)?.name} Plan Subscription`,
@@ -856,62 +864,6 @@ export default function BillingPage() {
                 {/* Billing Information Tab Content */}
                 {activeTab === 'billing-info' && (
                   <>
-                    {/* Your Current Plan Section */}
-                    <div className="mb-8">
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h2 className="text-blue-600 font-semibold text-lg mb-3">Your Current Plan</h2>
-                            {currentSubscription && currentSubscription.isActive ? (
-                              <>
-                                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                                  {plans.find(p => p.planId === currentSubscription.planId)?.name || 'Plan'} Plan
-                                </h3>
-                                <div className="text-gray-600">
-                                  {(() => {
-                                    const currentPlan = plans.find(p => p.planId === currentSubscription.planId);
-                                    if (currentPlan && currentPlan.features.length > 0) {
-                                      return currentPlan.features.slice(0, 3).join(', ');
-                                    }
-                                    return 'Premium features included';
-                                  })()}
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <h3 className="text-2xl font-bold text-gray-900 mb-4">No Plan Selected</h3>
-                                <div className="text-gray-600">
-                                  Select your plan to unlock premium features and start building amazing websites
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0">
-                            {currentSubscription && currentSubscription.isActive ? (
-                              <button
-                                onClick={() => setActiveTab('subscriptions')}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                              >
-                                Change Plan
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  // Scroll to Choose Your Plan section
-                                  const chooseYourPlanSection = document.querySelector('[data-section="choose-plan"]');
-                                  if (chooseYourPlanSection) {
-                                    chooseYourPlanSection.scrollIntoView({ behavior: 'smooth' });
-                                  }
-                                }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                              >
-                                Select Plan
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
 
                     {/* Choose Your Plan Section */}
                     <div className="mb-8" data-section="choose-plan">
@@ -1347,45 +1299,6 @@ export default function BillingPage() {
                         <span>📊</span>
                         <span>Download Report</span>
                       </button>
-                    </div>
-
-                    {/* Summary Cards */}
-                    <div className="grid md:grid-cols-3 gap-6 mb-8">
-                      <div className="bg-white border border-gray-200 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-medium text-gray-500">Total Spent</h3>
-                          <span className="text-purple-600">💰</span>
-                        </div>
-                        <div className="text-2xl font-bold text-gray-900">
-                          ₹{subscriptions.reduce((total, sub) => total + (sub.amount / 100), 0).toLocaleString()}
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">Lifetime total</p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-medium text-gray-500">Active Plans</h3>
-                          <span className="text-green-600">✅</span>
-                        </div>
-                        <div className="text-2xl font-bold text-gray-900">
-                          {subscriptions.filter(s => s.status === 'active').length}
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">Currently active</p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-medium text-gray-500">This Month</h3>
-                          <span className="text-blue-600">📅</span>
-                        </div>
-                        <div className="text-2xl font-bold text-gray-900">
-                          ₹{subscriptions
-                            .filter(s => s.status === 'active')
-                            .reduce((total, sub) => total + (sub.amount / 100), 0)
-                            .toLocaleString()}
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">Current billing</p>
-                      </div>
                     </div>
 
                     {/* Transaction History */}

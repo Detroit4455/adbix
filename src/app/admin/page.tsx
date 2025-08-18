@@ -76,9 +76,6 @@ export default async function AdminDashboardPage() {
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-600">Welcome, {session?.user?.name || 'Admin'}</h2>
                     <p className="text-gray-500">Admin dashboard for adbix</p>
-        <div className="mt-4">
-          <InitSettingsButton />
-        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -115,6 +112,15 @@ export default async function AdminDashboardPage() {
             <div className="text-2xl font-bold text-purple-800">324 GB</div>
           </div>
         </div>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="mt-8 bg-white rounded-lg shadow p-6 border border-red-200">
+        <h3 className="text-lg font-semibold text-red-700 mb-2">Danger Zone</h3>
+        <p className="text-sm text-gray-700 mb-4">
+          Reset system roles to defaults. This will overwrite your custom role list but will not change RBAC permissions or user accounts.
+        </p>
+        <InitSettingsButton />
       </div>
     </div>
   );

@@ -94,7 +94,6 @@ We have successfully created a comprehensive admin setup guide for the UPI Autop
 RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE
 RAZORPAY_KEY_SECRET=YOUR_RAZORPAY_KEY_SECRET_HERE
 RAZORPAY_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET_HERE
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE
 ```
 
 ## 🚀 **How to Access the Admin Setup Guide**

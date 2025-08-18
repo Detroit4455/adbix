@@ -28,17 +28,33 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<FormattedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 100;
 
   // Fetch users from API
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/users');
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', String(limit));
+      if (search.trim()) params.set('search', search.trim());
+      const response = await fetch(`/api/admin/users?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch users');
       }
       const data = await response.json();
       setUsers(data.users || []);
+      if (data.pagination) {
+        setPages(data.pagination.pages || 1);
+        setTotal(data.pagination.total || 0);
+      } else {
+        setPages(1);
+        setTotal((data.users || []).length);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
     } finally {
@@ -70,7 +86,19 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [page]);
+
+  // Realtime search with debounce
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      if (page !== 1) {
+        setPage(1);
+      } else {
+        fetchUsers();
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [search]);
 
   if (loading) {
     return (
@@ -98,9 +126,29 @@ export default function UserManagementPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">User Management</h2>
-        <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-          Add New User
-        </button>
+        <div className="flex items-center space-x-2">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, email, mobile..."
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
+          />
+          <button
+            onClick={() => { setPage(1); fetchUsers(); }}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            Search
+          </button>
+          {search && (
+            <button
+              onClick={() => { setSearch(''); setPage(1); fetchUsers(); }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -200,11 +248,23 @@ export default function UserManagementPage() {
         <div className="px-6 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              Showing <span className="font-medium">1</span> to <span className="font-medium">{users.length}</span> of <span className="font-medium">{users.length}</span> results
+              Page <span className="font-medium">{page}</span> of <span className="font-medium">{pages}</span> • Total <span className="font-medium">{total}</span>
             </div>
-            <div className="flex space-x-2">
-              <button className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50">Previous</button>
-              <button className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50">Next</button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className={`px-3 py-1 border rounded-md text-sm ${page <= 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => (p < pages ? p + 1 : p))}
+                disabled={page >= pages}
+                className={`px-3 py-1 border rounded-md text-sm ${page >= pages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>

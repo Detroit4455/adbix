@@ -14,8 +14,7 @@ async function testRazorpayIntegration() {
     const requiredEnvVars = [
       'RAZORPAY_KEY_ID',
       'RAZORPAY_KEY_SECRET',
-      'RAZORPAY_WEBHOOK_SECRET',
-      'NEXT_PUBLIC_RAZORPAY_KEY_ID'
+      'RAZORPAY_WEBHOOK_SECRET'
     ];
 
     let envCheck = true;

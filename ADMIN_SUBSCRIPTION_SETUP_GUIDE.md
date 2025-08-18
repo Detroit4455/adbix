@@ -56,7 +56,6 @@ Create `.env.local` file with these variables:
 RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE
 RAZORPAY_KEY_SECRET=YOUR_RAZORPAY_KEY_SECRET_HERE
 RAZORPAY_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET_HERE
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE
 
 # Database
 MONGODB_URI=mongodb://localhost:27017/web-as-a-service
@@ -209,7 +208,6 @@ For each billing plan, create corresponding Razorpay plan:
   ```env
   RAZORPAY_KEY_ID=rzp_live_YOUR_LIVE_KEY_ID
   RAZORPAY_KEY_SECRET=YOUR_LIVE_KEY_SECRET
-  NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_YOUR_LIVE_KEY_ID
   ```
 
 #### Checkpoint 7.2: Production Webhooks

@@ -35,11 +35,18 @@ export default function WebsitePreview({ mobileNumber, initialPath = 'index.html
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const mobileIframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Build direct S3 URL (bypass proxy/CDN) with cache-busting
+  const buildDirectS3Url = (userId: string, filePath: string, refreshKey: number) => {
+    const base = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
+    const safePath = filePath || 'index.html';
+    return `${base}/sites/${userId}/${safePath}?v=${Date.now()}&r=${refreshKey}`;
+  };
+
   // Set initial preview URLs
   useEffect(() => {
     if (mobileNumber) {
-      setPreviewUrl(`/site/${mobileNumber}/${currentPath}?preview=true&v=${Date.now()}&r=${desktopRefreshKey}`);
-      setMobilePreviewUrl(`/site/${mobileNumber}/${currentPath}?preview=true&v=${Date.now()}&r=${mobileRefreshKey}`);
+      setPreviewUrl(buildDirectS3Url(mobileNumber, currentPath, desktopRefreshKey));
+      setMobilePreviewUrl(buildDirectS3Url(mobileNumber, currentPath, mobileRefreshKey));
     }
   }, [mobileNumber, currentPath, mobileRefreshKey, desktopRefreshKey]);
 

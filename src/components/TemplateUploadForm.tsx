@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSession } from 'next-auth/react';
 
@@ -25,10 +25,12 @@ export default function TemplateUploadForm() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Upload states
   const [uploading, setUploading] = useState(false);
   const [selectedTemplateForUpload, setSelectedTemplateForUpload] = useState<string | null>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch templates
   const fetchTemplates = useCallback(async () => {
@@ -53,25 +55,14 @@ export default function TemplateUploadForm() {
     fetchTemplates();
   }, [fetchTemplates]);
 
-  // Handle file upload
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (!selectedTemplateForUpload) {
-      setError('Please select a template to upload files to');
-      return;
-    }
-
-    if (acceptedFiles.length === 0 || !acceptedFiles[0].name.endsWith('.zip')) {
-      setError('Please upload a valid ZIP file');
-      return;
-    }
-
+  // Core upload function (used by dropzone and row actions)
+  const uploadZipForTemplate = useCallback(async (templateId: string, file: File) => {
     setUploading(true);
     setError('');
-
     try {
       const formData = new FormData();
-      formData.append('zipFile', acceptedFiles[0]);
-      formData.append('templateId', selectedTemplateForUpload);
+      formData.append('zipFile', file);
+      formData.append('templateId', templateId);
 
       const response = await fetch('/api/admin/templates/upload', {
         method: 'POST',
@@ -79,27 +70,63 @@ export default function TemplateUploadForm() {
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to upload template files');
       }
 
       setSuccess('Template files uploaded successfully! The template is now ready for use.');
       setSelectedTemplateForUpload(null);
-      await fetchTemplates(); // Refresh templates to show updated file counts
-
+      await fetchTemplates();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload template files');
     } finally {
       setUploading(false);
     }
-  }, [selectedTemplateForUpload, fetchTemplates]);
+  }, [fetchTemplates]);
+
+  // Handle file upload via dropzone
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (!selectedTemplateForUpload) {
+      setError('Please select a template to upload files to');
+      return;
+    }
+    if (acceptedFiles.length === 0 || !acceptedFiles[0].name.endsWith('.zip')) {
+      setError('Please upload a valid ZIP file');
+      return;
+    }
+    await uploadZipForTemplate(selectedTemplateForUpload, acceptedFiles[0]);
+  }, [selectedTemplateForUpload, uploadZipForTemplate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'application/zip': ['.zip'] },
     multiple: false,
   });
+
+  // Handle row action: click to upload for a template
+  const handleRowUploadClick = (templateId: string) => {
+    setSelectedTemplateForUpload(templateId);
+    if (zipInputRef.current) {
+      zipInputRef.current.click();
+    }
+  };
+
+  const handleZipInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.name.endsWith('.zip')) {
+      setError('Please upload a valid ZIP file');
+      e.target.value = '';
+      return;
+    }
+    if (!selectedTemplateForUpload) {
+      setError('Please select a template to upload files to');
+      e.target.value = '';
+      return;
+    }
+    await uploadZipForTemplate(selectedTemplateForUpload, file);
+    e.target.value = '';
+  };
 
   // Format file size
   const formatFileSize = (bytes: number) => {
@@ -124,8 +151,19 @@ export default function TemplateUploadForm() {
     );
   }
 
+  const term = searchTerm.trim().toLowerCase();
+  const filteredTemplates = templates.filter((t) => {
+    if (!term) return true;
+    return (
+      t.name.toLowerCase().includes(term) ||
+      t.description.toLowerCase().includes(term) ||
+      t.businessCategory.toLowerCase().includes(term) ||
+      t.templateType.toLowerCase().includes(term)
+    );
+  });
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Error and success messages */}
       {error && (
         <div className="p-4 bg-red-50 rounded-lg flex items-start border border-red-200">
@@ -145,10 +183,30 @@ export default function TemplateUploadForm() {
         </div>
       )}
 
-      {/* Template Selection */}
+      {/* Template Selection - Table */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Select Template to Upload Files</h3>
-        
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Select Template to Upload Files</h3>
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search templates..."
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 w-64"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
         {templates.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-6xl mb-4">📁</div>
@@ -156,54 +214,76 @@ export default function TemplateUploadForm() {
             <p className="text-gray-600 mb-4">Create a template first before uploading files.</p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {templates.map((template) => (
-              <div
-                key={template.templateId}
-                className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                  selectedTemplateForUpload === template.templateId
-                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-                onClick={() => setSelectedTemplateForUpload(template.templateId)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-gray-900 truncate">{template.name}</h4>
-                  {selectedTemplateForUpload === template.templateId && (
-                    <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center ml-2 flex-shrink-0">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p><span className="font-medium">Category:</span> {formatLabel(template.businessCategory)}</p>
-                  <p><span className="font-medium">Type:</span> {formatLabel(template.templateType)}</p>
-                  
-                  {template.metadata.hasIndexHtml ? (
-                    <div className="flex items-center text-green-600">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-xs">
-                        {template.metadata.fileCount} files ({formatFileSize(template.metadata.totalSize)})
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center text-orange-600">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-xs">No files uploaded yet</span>
-                    </div>
-                  )}
-                </div>
+          <div className="overflow-x-auto">
+            {filteredTemplates.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">🔎</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No matching templates</h3>
+                <p className="text-gray-600 mb-4">Try a different search term or clear the search.</p>
               </div>
-            ))}
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Template</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredTemplates.map((template) => (
+                    <tr key={template.templateId} className={selectedTemplateForUpload === template.templateId ? 'bg-purple-50' : ''}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{template.name}</div>
+                        <div className="text-sm text-gray-500">ID: {template.templateId}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatLabel(template.businessCategory)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatLabel(template.templateType)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{template.metadata.fileCount}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatFileSize(template.metadata.totalSize)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {template.metadata.hasIndexHtml ? (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ready</span>
+                        ) : (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">No files</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setSelectedTemplateForUpload(template.templateId)}
+                            className={`px-3 py-1 rounded border ${selectedTemplateForUpload === template.templateId ? 'border-purple-500 text-purple-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                          >
+                            Select
+                          </button>
+                          <button
+                            onClick={() => handleRowUploadClick(template.templateId)}
+                            className={`px-3 py-1 rounded text-white ${uploading ? 'bg-purple-300' : 'bg-purple-600 hover:bg-purple-700'}`}
+                            disabled={uploading}
+                          >
+                            Upload ZIP
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
+        {/* Hidden input for per-row upload */}
+        <input
+          ref={zipInputRef}
+          type="file"
+          accept=".zip,application/zip"
+          className="hidden"
+          onChange={handleZipInputChange}
+        />
       </div>
 
       {/* File Upload Section */}

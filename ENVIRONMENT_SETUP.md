@@ -40,7 +40,6 @@ NEXT_PUBLIC_CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.clou
 RAZORPAY_KEY_ID=rzp_test_1234567890
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret_here
 RAZORPAY_WEBHOOK_SECRET=your_razorpay_webhook_secret_here
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_1234567890
 ```
 
 ### Development Settings
@@ -108,7 +107,6 @@ NEXT_PUBLIC_CLOUDFRONT_BASE_URL=https://your-cloudfront-distribution-domain.clou
 RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE
 RAZORPAY_KEY_SECRET=YOUR_RAZORPAY_KEY_SECRET_HERE
 RAZORPAY_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET_HERE
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE
 
 # Development Settings
 NODE_ENV=development

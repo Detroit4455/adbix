@@ -251,7 +251,7 @@ export default function AdminTemplatesPage() {
                 <div className="flex flex-wrap gap-1">
                   {[
                     'E-commerce', 'Restaurant', 'Portfolio', 'Business', 'Blog', 'Education',
-                    'Healthcare', 'Real Estate', 'Travel', 'Fitness', 'Technology', 'Creative'
+                    'Healthcare', 'Real Estate', 'Travel', 'Fitness', 'Technology', 'Creative', 'Beauty Salon'
                   ].map((category) => (
                     <span key={category} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                       {category}

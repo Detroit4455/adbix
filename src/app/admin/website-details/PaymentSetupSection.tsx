@@ -250,7 +250,6 @@ export default function PaymentSetupSection() {
           <div>RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE</div>
           <div>RAZORPAY_KEY_SECRET=YOUR_RAZORPAY_KEY_SECRET_HERE</div>
           <div>RAZORPAY_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET_HERE</div>
-          <div>NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID_HERE</div>
         </div>
       </div>
 

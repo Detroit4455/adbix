@@ -41,7 +41,11 @@ export const metadata = {
   description: 'Manage website configurations and deployments',
 };
 
-export default async function WebsiteManagerPage() {
+export default async function WebsiteManagerPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; page?: string; limit?: string };
+}) {
   // Check if user is authenticated and has the right role
   const session = await getServerSession(authOptions);
   
@@ -64,28 +68,74 @@ export default async function WebsiteManagerPage() {
     );
   }
 
-  // Fetch users from database using Mongoose
+  // Server-side search and pagination
+  const q = (searchParams?.q || '').trim();
+  const page = Math.max(1, parseInt(searchParams?.page || '1'));
+  const rawLimit = parseInt(searchParams?.limit || '50');
+  const limit = Number.isNaN(rawLimit) ? 50 : Math.min(100, Math.max(1, rawLimit));
+
+  // Build filter
+  const filter: any = {};
+  if (q) {
+    const regex = new RegExp(q, 'i');
+    filter.$or = [
+      { name: { $regex: regex } },
+      { email: { $regex: regex } },
+      { mobileNumber: { $regex: regex } },
+    ];
+  }
+
   await dbConnect();
-  const usersData = await User.find({})
+  const total = await User.countDocuments(filter);
+  const usersData = await User.find(filter)
     .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
     .select('name email mobileNumber role createdAt')
     .lean();
-  
-  // Convert MongoDB documents to plain objects with explicit type casting
+
   const users: User[] = usersData.map((user: any) => ({
     id: user._id.toString(),
     name: user.name,
     email: user.email,
     mobileNumber: user.mobileNumber,
     role: user.role,
-    createdAt: user.createdAt
+    createdAt: user.createdAt,
   }));
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const hasPrev = page > 1;
+  const hasNext = page < totalPages;
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Website Manager</h2>
-        <div className="flex space-x-3">
+        <div className="flex items-center space-x-3">
+          <form className="flex items-center space-x-2" action="/websiteManager" method="get">
+            <input
+              type="text"
+              name="q"
+              defaultValue={q}
+              placeholder="Search name, email, mobile..."
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
+            />
+            <input type="hidden" name="limit" value={String(limit)} />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Search
+            </button>
+            {q && (
+              <Link
+                href={`/websiteManager?limit=${limit}`}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Clear
+              </Link>
+            )}
+          </form>
           <Link 
             href="/web_on_s3" 
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
@@ -200,6 +250,27 @@ export default async function WebsiteManagerPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      <div className="bg-white shadow rounded-lg p-4 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span> • Total <span className="font-medium">{total}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Link
+            href={`/websiteManager?${new URLSearchParams({ q, page: String(Math.max(1, page - 1)), limit: String(limit) }).toString()}`}
+            className={`px-3 py-1 border rounded-md text-sm ${hasPrev ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-300 cursor-not-allowed pointer-events-none'}`}
+          >
+            Previous
+          </Link>
+          <Link
+            href={`/websiteManager?${new URLSearchParams({ q, page: String(hasNext ? page + 1 : page), limit: String(limit) }).toString()}`}
+            className={`px-3 py-1 border rounded-md text-sm ${hasNext ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-300 cursor-not-allowed pointer-events-none'}`}
+          >
+            Next
+          </Link>
         </div>
       </div>
       

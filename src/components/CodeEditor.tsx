@@ -2,7 +2,37 @@
 
 import React from 'react';
 import { useState, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
+import dynamic from 'next/dynamic';
+import { loader } from '@monaco-editor/react';
+
+const MONACO_CDN_BASE = process.env.NEXT_PUBLIC_MONACO_CDN_BASE || 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min';
+
+if (typeof window !== 'undefined') {
+  try {
+    loader.config({ paths: { vs: `${MONACO_CDN_BASE}/vs` } });
+  } catch {}
+}
+
+const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+
+class MonacoErrorBoundary extends React.Component<{ onError: (e: unknown) => void; children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any) {
+    try { this.props.onError(error); } catch {}
+  }
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children as any;
+  }
+}
 import { useSession } from 'next-auth/react';
 
 interface CodeEditorProps {
@@ -24,6 +54,21 @@ export default function CodeEditor({ filePath, fileName, templateId, onClose, on
   const [error, setError] = useState<string>('');
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [editorMode, setEditorMode] = useState<'monaco' | 'basic'>('basic');
+  const [monacoReady, setMonacoReady] = useState<boolean>(false);
+
+  // Attempt to pre-initialize Monaco when user selects Advanced
+  useEffect(() => {
+    if (editorMode === 'monaco' && typeof window !== 'undefined') {
+      loader.init().then(() => {
+        setMonacoReady(true);
+      }).catch((e) => {
+        setMonacoReady(false);
+        setError('Advanced editor failed to load. Falling back to Basic editor.');
+        setEditorMode('basic');
+      });
+    }
+  }, [editorMode]);
 
   useEffect(() => {
     if (isTemplate && templateId && fileName) {
@@ -94,7 +139,10 @@ export default function CodeEditor({ filePath, fileName, templateId, onClose, on
         
         const data = await response.json();
         setContent(data.content);
-        setCurrentFileName(path.split('/').pop() || '');
+        const resolvedFileName = path.split('/').pop() || '';
+        setCurrentFileName(resolvedFileName);
+        const extension = resolvedFileName.split('.').pop()?.toLowerCase();
+        setLanguage(getLanguageFromExtension(extension));
       } else {
         // Handle regular file system files
         const response = await fetch(`/api/files/edit?mobileNumber=${session?.user?.mobileNumber}&path=${filePath}`);
@@ -106,12 +154,11 @@ export default function CodeEditor({ filePath, fileName, templateId, onClose, on
         
         const data = await response.json();
         setContent(data.content);
-        setCurrentFileName(data.fileName);
+        const resolvedFileName = data.fileName as string;
+        setCurrentFileName(resolvedFileName);
+        const extension = resolvedFileName.split('.').pop()?.toLowerCase();
+        setLanguage(getLanguageFromExtension(extension));
       }
-      
-      // Determine language based on file extension
-      const extension = currentFileName.split('.').pop()?.toLowerCase();
-      setLanguage(getLanguageFromExtension(extension));
       
       setError('');
     } catch (err) {
@@ -343,38 +390,78 @@ This is a sample project.
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-gray-500">Editor:</span>
+            <select
+              value={editorMode}
+              onChange={(e) => setEditorMode(e.target.value as 'monaco' | 'basic')}
+              className="text-xs border rounded px-1 py-0.5"
+            >
+              <option value="monaco">Advanced</option>
+              <option value="basic">Basic</option>
+            </select>
+          </div>
         </div>
         
         <div className="flex-grow">
-          <Editor
-            height="100%"
-            language={language}
-            value={content}
-            onChange={(value) => {
-              const newContent = value || '';
-              setContent(newContent);
-              
-              // Dispatch event with updated content for the preview
-              if (typeof window !== 'undefined' && currentFileName.endsWith('.html')) {
-                const updateEvent = new CustomEvent('fileContentUpdate', {
-                  detail: { 
-                    filePath: filePath,
-                    content: newContent 
-                  }
-                });
-                window.dispatchEvent(updateEvent);
-              }
-            }}
-            theme="vs-light"
-            options={{
-              minimap: { enabled: true },
-              fontSize: 14,
-              wordWrap: 'on',
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
-          />
+          {editorMode === 'monaco' ? (
+            monacoReady ? (
+            <MonacoErrorBoundary onError={() => { setError('Advanced editor crashed. Falling back to Basic.'); setEditorMode('basic'); }}>
+            <MonacoEditor
+              height="100%"
+              language={language}
+              value={content}
+              onChange={(value) => {
+                const newContent = value || '';
+                setContent(newContent);
+                
+                if (typeof window !== 'undefined' && currentFileName.endsWith('.html')) {
+                  const updateEvent = new CustomEvent('fileContentUpdate', {
+                    detail: { 
+                      filePath: filePath,
+                      content: newContent 
+                    }
+                  });
+                  window.dispatchEvent(updateEvent);
+                }
+              }}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                wordWrap: 'on',
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
+              loading={<div className="h-full w-full flex items-center justify-center"><div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full"></div></div>}
+            />
+            </MonacoErrorBoundary>
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-xs text-gray-600">
+                Initializing advanced editor...
+              </div>
+            )
+          ) : (
+            <textarea
+              value={content}
+              onChange={(e) => {
+                const newContent = e.target.value;
+                setContent(newContent);
+                if (typeof window !== 'undefined' && currentFileName.endsWith('.html')) {
+                  const updateEvent = new CustomEvent('fileContentUpdate', {
+                    detail: { 
+                      filePath: filePath,
+                      content: newContent 
+                    }
+                  });
+                  window.dispatchEvent(updateEvent);
+                }
+              }}
+              className="w-full h-full p-3 font-mono text-sm border-0 outline-none"
+              spellCheck={false}
+            />
+          )}
         </div>
       </div>
     );
@@ -408,22 +495,52 @@ This is a sample project.
           </div>
         )}
         
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs text-gray-500">Editor:</span>
+          <select
+            value={editorMode}
+            onChange={(e) => setEditorMode(e.target.value as 'monaco' | 'basic')}
+            className="text-xs border rounded px-1 py-0.5"
+          >
+            <option value="monaco">Advanced</option>
+            <option value="basic">Basic</option>
+          </select>
+        </div>
+
         <div className="flex-grow mb-4 border rounded overflow-hidden">
-          <Editor
-            height="60vh"
-            language={language}
-            value={content}
-            onChange={(value) => setContent(value || '')}
-            theme="vs-light"
-            options={{
-              minimap: { enabled: true },
-              fontSize: 14,
-              wordWrap: 'on',
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
-          />
+          {editorMode === 'monaco' ? (
+            monacoReady ? (
+            <MonacoErrorBoundary onError={() => { setError('Advanced editor crashed. Falling back to Basic.'); setEditorMode('basic'); }}>
+            <MonacoEditor
+              height="60vh"
+              language={language}
+              value={content}
+              onChange={(value) => setContent(value || '')}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                wordWrap: 'on',
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
+              loading={<div className="h-[60vh] w-full flex items-center justify-center"><div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full"></div></div>}
+            />
+            </MonacoErrorBoundary>
+            ) : (
+              <div className="h-[60vh] w-full flex items-center justify-center text-sm text-gray-600">
+                Initializing advanced editor...
+              </div>
+            )
+          ) : (
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full h-[60vh] p-3 font-mono text-sm border-0 outline-none"
+              spellCheck={false}
+            />
+          )}
         </div>
         
         <div className="flex justify-end">
