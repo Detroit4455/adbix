@@ -300,9 +300,9 @@ export default function BillingPage() {
         setCurrentSubscription(activeSubscription || null);
       }
 
-      // Fetch server settings for trial period info
+      // Fetch server settings for trial period info (public endpoint - all users can access)
       try {
-        const serverSettingsResponse = await fetch('/api/admin/server-settings');
+        const serverSettingsResponse = await fetch('/api/server-settings/public');
         if (serverSettingsResponse.ok) {
           const serverSettingsData = await serverSettingsResponse.json();
           setServerSettings({
@@ -310,9 +310,17 @@ export default function BillingPage() {
             trialPeriodDays: serverSettingsData.trialPeriodDays || 30,
             trialDescription: serverSettingsData.trialDescription || 'Free trial period for new subscriptions'
           });
+          console.log('Trial period settings loaded for user:', serverSettingsData);
+        } else {
+          console.warn('Could not fetch server settings, using defaults');
+          setServerSettings({
+            enableTrialPeriod: false,
+            trialPeriodDays: 30,
+            trialDescription: 'Free trial period for new subscriptions'
+          });
         }
       } catch (serverSettingsError) {
-        console.log('Could not fetch server settings (user may not have admin access)');
+        console.warn('Error fetching server settings:', serverSettingsError);
         setServerSettings({
           enableTrialPeriod: false,
           trialPeriodDays: 30,
