@@ -156,7 +156,7 @@ export default function PaymentSetupSection() {
               <div>
                 <h4 className="font-medium text-gray-800 mb-3">Prerequisites</h4>
                 <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Admin access to Web as a Service platform</li>
+                  <li>• Admin access to Adbix platform</li>
                   <li>• Razorpay business account</li>
                   <li>• Bank account linked to Razorpay</li>
                   <li>• Domain with SSL (for production)</li>

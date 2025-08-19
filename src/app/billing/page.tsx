@@ -49,6 +49,11 @@ interface Subscription {
   canBeCancelled: boolean;
   isActive: boolean;
   createdAt: string;
+  enableTrialPeriod?: boolean;
+  trialPeriodDays?: number;
+  trialStartDate?: string;
+  trialEndDate?: string;
+  isInTrial?: boolean;
 }
 
 interface CustomerInfo {
@@ -112,6 +117,12 @@ export default function BillingPage() {
     email: '',
     phone: ''
   });
+  const [serverSettings, setServerSettings] = useState<{
+    enableTrialPeriod: boolean;
+    trialPeriodDays: number;
+    trialDescription: string;
+  } | null>(null);
+
 
   // Utility function to handle error messages
   const getErrorMessage = (error: any, defaultMessage: string): string => {
@@ -207,6 +218,39 @@ export default function BillingPage() {
     }
   }, [status]);
 
+  // Auto-refresh for authenticated subscriptions (check every 30 seconds)
+  useEffect(() => {
+    if (status === 'authenticated' && subscriptions.length > 0) {
+      const authenticatedSubs = subscriptions.filter(sub => sub.status === 'authenticated');
+      
+      if (authenticatedSubs.length > 0) {
+        console.log(`Found ${authenticatedSubs.length} authenticated subscription(s), setting up auto-refresh`);
+        
+        const intervalId = setInterval(async () => {
+          console.log('Auto-refreshing subscription status for authenticated subscriptions');
+          try {
+            await fetchData();
+            
+            // Check if any subscriptions are now active
+            const stillAuthenticated = subscriptions.filter(sub => sub.status === 'authenticated');
+            if (stillAuthenticated.length === 0) {
+              console.log('All subscriptions have moved past authenticated status, stopping auto-refresh');
+              clearInterval(intervalId);
+            }
+          } catch (error) {
+            console.error('Error during auto-refresh:', error);
+          }
+        }, 30000); // Check every 30 seconds
+
+        // Cleanup interval on component unmount or when subscriptions change
+        return () => {
+          console.log('Cleaning up subscription auto-refresh interval');
+          clearInterval(intervalId);
+        };
+      }
+    }
+  }, [status, subscriptions]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -254,6 +298,26 @@ export default function BillingPage() {
           (sub: Subscription) => sub.isActive
         );
         setCurrentSubscription(activeSubscription || null);
+      }
+
+      // Fetch server settings for trial period info
+      try {
+        const serverSettingsResponse = await fetch('/api/admin/server-settings');
+        if (serverSettingsResponse.ok) {
+          const serverSettingsData = await serverSettingsResponse.json();
+          setServerSettings({
+            enableTrialPeriod: serverSettingsData.enableTrialPeriod || false,
+            trialPeriodDays: serverSettingsData.trialPeriodDays || 30,
+            trialDescription: serverSettingsData.trialDescription || 'Free trial period for new subscriptions'
+          });
+        }
+      } catch (serverSettingsError) {
+        console.log('Could not fetch server settings (user may not have admin access)');
+        setServerSettings({
+          enableTrialPeriod: false,
+          trialPeriodDays: 30,
+          trialDescription: 'Free trial period for new subscriptions'
+        });
       }
 
       // Fetch customer info from Adbix database User collection
@@ -427,17 +491,63 @@ export default function BillingPage() {
         const options = {
           key: configResult.keyId,
           subscription_id: result.subscription.razorpaySubscriptionId,
-          name: 'Web as a Service',
+          name: 'Adbix',
           description: `${plans.find(p => p.planId === selectedPlan)?.name} Plan Subscription`,
-          image: '/logo.png', // Add your logo
+          image: '/favicon_io/android-chrome-512x512.png', // Adbix logo
           handler: async function (response: any) {
             console.log('Payment successful:', response);
             try {
-              // Refresh subscription data
-              await fetchData();
-              showModal('Success', 'UPI Autopay mandate approved successfully! Your subscription will be activated automatically. You will receive payment notifications via SMS and email.', 'success');
+              // Show immediate success message
+              showModal('Success', 'UPI Autopay mandate approved successfully! Activating your subscription...', 'success');
+              
+              // Wait for webhook processing to complete (up to 30 seconds)
+              let activationAttempts = 0;
+              const maxAttempts = 6; // 6 attempts over 30 seconds
+              
+              const checkActivation = async (): Promise<boolean> => {
+                activationAttempts++;
+                console.log(`Checking activation status - attempt ${activationAttempts}/${maxAttempts}`);
+                
+                try {
+                  // Refresh subscription data
+                  await fetchData();
+                  
+                  // Check if any subscription is now active
+                  const activeSubscription = subscriptions.find(sub => sub.status === 'active');
+                  
+                  if (activeSubscription) {
+                    console.log('Subscription activated successfully!');
+                    showModal('Success', '🎉 Subscription Activated Successfully!\n\nYour UPI Autopay subscription is now active and billing has started. You will receive payment notifications via SMS and email for all future payments.\n\nWelcome to Adbix!', 'success');
+                    return true;
+                  }
+                  
+                  if (activationAttempts < maxAttempts) {
+                    // Wait 5 seconds before next attempt
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    return await checkActivation();
+                  } else {
+                    // Final attempt - show activation guidance
+                    console.log('Auto-activation timed out, showing manual guidance');
+                    showModal('Mandate Approved', '✅ UPI Autopay mandate approved successfully!\n\nYour subscription is being activated in the background. This usually takes 1-2 minutes.\n\n📋 What happens next:\n• First payment will be processed automatically\n• You\'ll receive SMS/email notifications\n• Subscription will show as "Active" once payment completes\n\n💡 If it doesn\'t activate within 5 minutes, try refreshing the page or click "Charge Now" button in the subscriptions tab.', 'info');
+                    return false;
+                  }
+                } catch (error) {
+                  console.error('Error checking activation status:', error);
+                  if (activationAttempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    return await checkActivation();
+                  } else {
+                    showModal('Mandate Approved', 'UPI Autopay mandate approved successfully! Please refresh the page to see updated information, or contact support if the subscription doesn\'t activate within a few minutes.', 'success');
+                    return false;
+                  }
+                }
+              };
+              
+              // Start the activation checking process
+              await checkActivation();
+              
             } catch (error) {
-              console.error('Error refreshing data after payment:', error);
+              console.error('Error in payment success handler:', error);
               showModal('Success', 'UPI Autopay mandate approved successfully! Please refresh the page to see updated information.', 'success');
             } finally {
               // Always stop processing state after payment success
@@ -917,6 +1027,41 @@ export default function BillingPage() {
                         </div>
                       </div>
 
+                    {/* Trial Period Notice (if enabled by admin) */}
+                    {serverSettings?.enableTrialPeriod && (
+                      <div className="mb-8">
+                        <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6">
+                          <div className="flex items-start space-x-4">
+                            <div className="bg-green-100 p-2 rounded-full">
+                              <span className="text-green-600 text-xl">🎁</span>
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
+                                Free Trial Available!
+                                <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                  {serverSettings.trialPeriodDays} days
+                                </span>
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-3">
+                                {serverSettings.trialDescription}
+                              </p>
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <div className="text-sm text-green-700">
+                                  <p className="font-medium mb-1">What you get:</p>
+                                  <ul className="space-y-1 text-sm">
+                                    <li>• {serverSettings.trialPeriodDays} days of full access at no cost</li>
+                                    <li>• UPI Autopay setup during trial (no immediate charge)</li>
+                                    <li>• First payment automatically charged after trial ends</li>
+                                    <li>• Cancel anytime during trial with no charges</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Add-ons Section */}
                     <div>
                       <h2 className="text-xl font-semibold text-gray-800 mb-6">Add-ons</h2>
@@ -1057,14 +1202,48 @@ export default function BillingPage() {
                                         </p>
                                         <div className="mt-2 flex gap-2">
                                           <button
-                                            onClick={() => handleSubscriptionAction('activate', subscription.id)}
+                                            onClick={async () => {
+                                              try {
+                                                setProcessingPayment(true);
+                                                const result = await handleSubscriptionAction('activate', subscription.id);
+                                                // Auto-refresh after activation attempt
+                                                setTimeout(async () => {
+                                                  try {
+                                                    console.log('Auto-refreshing after manual activation attempt');
+                                                    await fetchData();
+                                                  } catch (error) {
+                                                    console.error('Error during post-activation refresh:', error);
+                                                  }
+                                                }, 3000);
+                                              } catch (error) {
+                                                console.error('Error during manual activation:', error);
+                                                setProcessingPayment(false);
+                                              }
+                                            }}
                                             disabled={processingPayment}
                                             className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
                                           >
                                             {processingPayment ? 'Processing...' : 'Charge Now'}
                                           </button>
                                           <button
-                                            onClick={() => handleSubscriptionAction('refresh', subscription.id)}
+                                            onClick={async () => {
+                                              try {
+                                                setProcessingPayment(true);
+                                                await handleSubscriptionAction('refresh', subscription.id);
+                                                // Auto-refresh after status check
+                                                setTimeout(async () => {
+                                                  try {
+                                                    console.log('Auto-refreshing after status check');
+                                                    await fetchData();
+                                                  } catch (error) {
+                                                    console.error('Error during post-refresh update:', error);
+                                                  }
+                                                }, 2000);
+                                              } catch (error) {
+                                                console.error('Error during status check:', error);
+                                                setProcessingPayment(false);
+                                              }
+                                            }}
                                             disabled={processingPayment}
                                             className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
                                           >
@@ -1529,12 +1708,17 @@ export default function BillingPage() {
                             Processing...
                           </div>
                         ) : (
-                          'Start UPI Autopay Subscription'
+                          serverSettings?.enableTrialPeriod 
+                            ? `Start ${serverSettings.trialPeriodDays}-Day Free Trial` 
+                            : 'Start UPI Autopay Subscription'
                         )}
                       </button>
 
                       <p className="text-xs text-gray-500 mt-3 text-center">
-                        Secure payment powered by Razorpay. Your UPI ID will be used for automatic recurring payments.
+                        {serverSettings?.enableTrialPeriod 
+                          ? `Secure setup powered by Razorpay. Free for ${serverSettings.trialPeriodDays} days, then automatic recurring payments.`
+                          : 'Secure payment powered by Razorpay. Your UPI ID will be used for automatic recurring payments.'
+                        }
                       </p>
                     </>
                   )}

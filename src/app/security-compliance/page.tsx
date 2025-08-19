@@ -21,7 +21,7 @@ export default function SecurityCompliancePublicPage() {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Security & Compliance</h1>
             <p className="text-xl text-indigo-100 mb-8">
-              PCI DSS SAQ A Compliant Web-as-a-Service Platform
+              PCI DSS SAQ A Compliant Adbix Platform
             </p>
             <div className="inline-flex items-center bg-green-500 text-white px-6 py-3 rounded-full">
               <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">

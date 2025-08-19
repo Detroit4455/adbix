@@ -4,6 +4,12 @@ import { connectMongoose } from '@/lib/db';
 export interface IServerSettings {
   maxImagesPerUser: number;
   allowNewUserRegistration: boolean;
+  
+  // Trial Period Configuration
+  enableTrialPeriod: boolean;
+  trialPeriodDays: number;
+  trialDescription: string;
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +30,22 @@ const serverSettingsSchema = new Schema<IServerSettings>({
   allowNewUserRegistration: {
     type: Boolean,
     default: true
+  },
+  
+  // Trial Period Configuration
+  enableTrialPeriod: {
+    type: Boolean,
+    default: false
+  },
+  trialPeriodDays: {
+    type: Number,
+    default: 30,
+    min: 1,
+    max: 365
+  },
+  trialDescription: {
+    type: String,
+    default: 'Free trial period for new subscriptions'
   }
 }, {
   timestamps: true,
@@ -50,6 +72,9 @@ serverSettingsSchema.statics.getSettings = async function(): Promise<IServerSett
     return {
       maxImagesPerUser: 50,
       allowNewUserRegistration: true,
+      enableTrialPeriod: false,
+      trialPeriodDays: 30,
+      trialDescription: 'Free trial period for new subscriptions',
       createdAt: new Date(),
       updatedAt: new Date()
     } as IServerSettings;
@@ -61,11 +86,15 @@ serverSettingsSchema.statics.updateSettings = async function(newSettings: Partia
   try {
     await connectMongoose();
     
+    console.log('MongoDB: Updating server settings with:', newSettings);
+    
     const settings = await this.findOneAndUpdate(
       {}, 
       newSettings, 
       { new: true, upsert: true, runValidators: true }
     );
+    
+    console.log('MongoDB: Updated settings result:', settings);
     
     return settings;
   } catch (error) {
@@ -84,7 +113,10 @@ serverSettingsSchema.statics.initializeDefaultSettings = async function(): Promi
     if (!exists) {
       await this.create({
         maxImagesPerUser: 50,
-        allowNewUserRegistration: true
+        allowNewUserRegistration: true,
+        enableTrialPeriod: false,
+        trialPeriodDays: 30,
+        trialDescription: 'Free trial period for new subscriptions'
       });
     }
   } catch (error) {
