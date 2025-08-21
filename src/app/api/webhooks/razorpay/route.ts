@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Subscription from '@/models/Subscription';
-import RazorpayService, { RAZORPAY_CONFIG, isRazorpayConfigured } from '@/lib/razorpay';
+import RazorpayService, { RAZORPAY_CONFIG, isRazorpayConfigured, getRazorpayInstance } from '@/lib/razorpay';
 import { subscriptionCache } from '@/lib/subscriptionCache';
 
 // Simple in-memory cache for webhook replay protection
@@ -582,7 +582,8 @@ async function triggerFirstPayment(subscriptionId: string) {
     
     // For UPI Autopay, we don't need to edit the subscription
     // Instead, we should fetch the current status and wait for automatic payment
-    const razorpayInstance = RazorpayService.getInstance();
+    const razorpayInstance = getRazorpayInstance();
+    console.log('✅ Razorpay instance obtained successfully');
     
     try {
       // Get current subscription status from Razorpay
@@ -654,7 +655,7 @@ async function activateUPIAutopaySubscription(subscriptionId: string) {
       return;
     }
 
-    const razorpayInstance = RazorpayService.getInstance();
+    const razorpayInstance = getRazorpayInstance();
 
     // Fetch the latest subscription status from Razorpay
     const razorpaySubscription = await razorpayInstance.subscriptions.fetch(subscriptionId);
