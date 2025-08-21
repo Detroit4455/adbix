@@ -49,11 +49,6 @@ interface Subscription {
   canBeCancelled: boolean;
   isActive: boolean;
   createdAt: string;
-  enableTrialPeriod?: boolean;
-  trialPeriodDays?: number;
-  trialStartDate?: string;
-  trialEndDate?: string;
-  isInTrial?: boolean;
 }
 
 interface CustomerInfo {
@@ -117,12 +112,6 @@ export default function BillingPage() {
     email: '',
     phone: ''
   });
-  const [serverSettings, setServerSettings] = useState<{
-    enableTrialPeriod: boolean;
-    trialPeriodDays: number;
-    trialDescription: string;
-  } | null>(null);
-
 
   // Utility function to handle error messages
   const getErrorMessage = (error: any, defaultMessage: string): string => {
@@ -298,34 +287,6 @@ export default function BillingPage() {
           (sub: Subscription) => sub.isActive
         );
         setCurrentSubscription(activeSubscription || null);
-      }
-
-      // Fetch server settings for trial period info (public endpoint - all users can access)
-      try {
-        const serverSettingsResponse = await fetch('/api/server-settings/public');
-        if (serverSettingsResponse.ok) {
-          const serverSettingsData = await serverSettingsResponse.json();
-          setServerSettings({
-            enableTrialPeriod: serverSettingsData.enableTrialPeriod || false,
-            trialPeriodDays: serverSettingsData.trialPeriodDays || 30,
-            trialDescription: serverSettingsData.trialDescription || 'Free trial period for new subscriptions'
-          });
-          console.log('Trial period settings loaded for user:', serverSettingsData);
-        } else {
-          console.warn('Could not fetch server settings, using defaults');
-          setServerSettings({
-            enableTrialPeriod: false,
-            trialPeriodDays: 30,
-            trialDescription: 'Free trial period for new subscriptions'
-          });
-        }
-      } catch (serverSettingsError) {
-        console.warn('Error fetching server settings:', serverSettingsError);
-        setServerSettings({
-          enableTrialPeriod: false,
-          trialPeriodDays: 30,
-          trialDescription: 'Free trial period for new subscriptions'
-        });
       }
 
       // Fetch customer info from Adbix database User collection
@@ -1035,41 +996,6 @@ export default function BillingPage() {
                         </div>
                       </div>
 
-                    {/* Trial Period Notice (if enabled by admin) */}
-                    {serverSettings?.enableTrialPeriod && (
-                      <div className="mb-8">
-                        <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6">
-                          <div className="flex items-start space-x-4">
-                            <div className="bg-green-100 p-2 rounded-full">
-                              <span className="text-green-600 text-xl">🎁</span>
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
-                                Free Trial Available!
-                                <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                  {serverSettings.trialPeriodDays} days
-                                </span>
-                              </h3>
-                              <p className="text-sm text-gray-600 mb-3">
-                                {serverSettings.trialDescription}
-                              </p>
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                <div className="text-sm text-green-700">
-                                  <p className="font-medium mb-1">What you get:</p>
-                                  <ul className="space-y-1 text-sm">
-                                    <li>• {serverSettings.trialPeriodDays} days of full access at no cost</li>
-                                    <li>• UPI Autopay setup during trial (no immediate charge)</li>
-                                    <li>• First payment automatically charged after trial ends</li>
-                                    <li>• Cancel anytime during trial with no charges</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Add-ons Section */}
                     <div>
                       <h2 className="text-xl font-semibold text-gray-800 mb-6">Add-ons</h2>
@@ -1716,17 +1642,12 @@ export default function BillingPage() {
                             Processing...
                           </div>
                         ) : (
-                          serverSettings?.enableTrialPeriod 
-                            ? `Start ${serverSettings.trialPeriodDays}-Day Free Trial` 
-                            : 'Start UPI Autopay Subscription'
+                          'Start UPI Autopay Subscription'
                         )}
                       </button>
 
                       <p className="text-xs text-gray-500 mt-3 text-center">
-                        {serverSettings?.enableTrialPeriod 
-                          ? `Secure setup powered by Razorpay. Free for ${serverSettings.trialPeriodDays} days, then automatic recurring payments.`
-                          : 'Secure payment powered by Razorpay. Your UPI ID will be used for automatic recurring payments.'
-                        }
+                        Secure payment powered by Razorpay. Your UPI ID will be used for automatic recurring payments.
                       </p>
                     </>
                   )}

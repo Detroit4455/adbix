@@ -35,14 +35,6 @@ export interface ISubscription extends Document {
     processedAt: Date;
   }>;
   metadata?: Record<string, any>;
-  
-  // Trial period fields
-  enableTrialPeriod?: boolean;
-  trialPeriodDays?: number;
-  trialStartDate?: Date;
-  trialEndDate?: Date;
-  isInTrial?: boolean;
-  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -119,27 +111,6 @@ const subscriptionSchema = new Schema<ISubscription>({
   notes: {
     type: Schema.Types.Mixed,
     default: {}
-  },
-  
-  // Trial period schema fields
-  enableTrialPeriod: {
-    type: Boolean,
-    default: false
-  },
-  trialPeriodDays: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  trialStartDate: {
-    type: Date
-  },
-  trialEndDate: {
-    type: Date
-  },
-  isInTrial: {
-    type: Boolean,
-    default: false
   },
   addons: [{
     addonId: {

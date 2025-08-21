@@ -334,7 +334,6 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
     }
 
     const wasFirstPayment = subscription.paidCount === 0 || subscription.status === 'authenticated';
-    const wasTrialSubscription = subscription.isInTrial === true;
     
     // Update billing information
     subscription.status = 'active'; // Ensure subscription becomes active after payment
@@ -347,25 +346,14 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
     subscription.currentPeriodEnd = subscriptionData.current_end ? 
       new Date(subscriptionData.current_end * 1000) : subscription.currentPeriodEnd;
 
-    // If this was a trial subscription and it's the first payment, end the trial
-    if (wasTrialSubscription && wasFirstPayment) {
-      subscription.isInTrial = false;
-      console.log('Trial period ended for subscription:', subscription.razorpaySubscriptionId);
-    }
-
     // Store minimal, non-sensitive payment method details
     const minimalPaymentData = extractMinimalPaymentData(paymentData);
     if (minimalPaymentData) {
       subscription.paymentMethod = minimalPaymentData;
     }
 
-    let eventType = 'subscription.charged';
-    if (wasFirstPayment) {
-      eventType = wasTrialSubscription ? 'subscription.first_payment_after_trial' : 'subscription.first_payment_charged';
-    }
-
     subscription.webhookEvents.push({
-      eventType: eventType,
+      eventType: wasFirstPayment ? 'subscription.first_payment_charged' : 'subscription.charged',
       eventData: { 
         paymentId: paymentData.id,
         subscriptionId: subscriptionData.id,
@@ -374,7 +362,6 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
         status: paymentData.status,
         method: paymentData.method,
         wasFirstPayment,
-        wasTrialSubscription,
         activatedFromAuthenticated: wasFirstPayment && subscription.status === 'authenticated'
       },
       processedAt: new Date()
@@ -383,11 +370,7 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
     await subscription.save();
     
     if (wasFirstPayment) {
-      if (wasTrialSubscription) {
-        console.log('First payment charged after trial period, subscription activated:', subscription.razorpaySubscriptionId, paymentData.amount);
-      } else {
-        console.log('First payment charged, subscription activated:', subscription.razorpaySubscriptionId, paymentData.amount);
-      }
+      console.log('First payment charged, subscription activated:', subscription.razorpaySubscriptionId, paymentData.amount);
     } else {
     console.log('Subscription charged:', subscription.razorpaySubscriptionId, paymentData.amount);
     }
@@ -556,36 +539,17 @@ async function handleSubscriptionAuthenticated(subscriptionData: any) {
     await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription authenticated (UPI Autopay approved):', subscription.razorpaySubscriptionId);
 
-    // Check if this subscription has a trial period
-    const hasTrialPeriod = subscription.enableTrialPeriod === true || 
-                          subscription.notes?.enableTrialPeriod === 'true';
-
-    if (!hasTrialPeriod) {
-      // For non-trial subscriptions, trigger immediate first payment to activate subscription
-      console.log('Triggering immediate first payment for UPI Autopay (no trial):', subscription.razorpaySubscriptionId);
-      
-      // Use setTimeout to allow the webhook response to complete first
-      setTimeout(async () => {
-        try {
-          await triggerFirstPayment(subscription.razorpaySubscriptionId);
-        } catch (error) {
-          console.error('Error in delayed first payment trigger:', error);
-        }
-      }, 2000); // 2 second delay
-    } else {
-      const trialDays = subscription.trialPeriodDays || parseInt(subscription.notes?.trialPeriodDays || '30');
-      console.log('Trial subscription authenticated - scheduling first payment after trial period:', subscription.razorpaySubscriptionId);
-      console.log('Trial period:', trialDays, 'days');
-      
-      // Schedule first payment after trial period using Razorpay Update Subscription API
-      setTimeout(async () => {
-        try {
-          await scheduleTrialPayment(subscription.razorpaySubscriptionId, trialDays);
-        } catch (error) {
-          console.error('Error scheduling trial payment:', error);
-        }
-      }, 2000); // 2 second delay
-    }
+    // For UPI Autopay, trigger immediate first payment to activate subscription
+    console.log('Triggering immediate first payment for UPI Autopay:', subscription.razorpaySubscriptionId);
+    
+    // Use setTimeout to allow the webhook response to complete first
+    setTimeout(async () => {
+      try {
+        await triggerFirstPayment(subscription.razorpaySubscriptionId);
+      } catch (error) {
+        console.error('Error in delayed first payment trigger:', error);
+      }
+    }, 2000); // 2 second delay
 
   } catch (error) {
     console.error('Error handling subscription authenticated:', error);
@@ -657,71 +621,6 @@ async function triggerFirstPayment(subscriptionId: string) {
 
   } catch (error) {
     console.error('Error triggering first payment:', subscriptionId, error);
-  }
-}
-
-/**
- * Schedule first payment for trial subscription after trial period
- */
-async function scheduleTrialPayment(subscriptionId: string, trialDays: number) {
-  try {
-    if (!isRazorpayConfigured()) {
-      console.error('Razorpay not configured for trial payment scheduling');
-      return;
-    }
-
-    const razorpayInstance = new (require('razorpay'))({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
-
-    // Calculate when the trial period ends
-    const currentTime = Math.floor(Date.now() / 1000);
-    const trialEndTime = currentTime + (trialDays * 24 * 60 * 60);
-
-    console.log('Scheduling trial payment for subscription:', subscriptionId);
-    console.log('Trial end time:', new Date(trialEndTime * 1000));
-
-    try {
-      // Update the subscription to charge after trial period
-      const updatedSubscription = await razorpayInstance.subscriptions.edit(subscriptionId, {
-        // Note: We cannot directly set charge_at, but we can pause and resume
-        // Alternative approach: Let Razorpay handle timing naturally and track trial in our database
-      });
-
-      console.log('Trial payment scheduled for subscription:', subscriptionId);
-
-      // Update local subscription with trial information
-      const subscription = await Subscription.findOne({
-        razorpaySubscriptionId: subscriptionId
-      });
-
-      if (subscription) {
-        subscription.webhookEvents.push({
-          eventType: 'trial.payment_scheduled',
-          eventData: {
-            subscriptionId,
-            trialDays,
-            trialEndTime,
-            scheduledAt: new Date()
-          },
-          processedAt: new Date()
-        });
-
-        await subscription.save();
-        console.log('Trial payment scheduling logged for:', subscriptionId);
-      }
-
-    } catch (updateError: any) {
-      console.error('Error scheduling trial payment:', subscriptionId, updateError);
-      
-      // Since we cannot easily modify charge timing after creation,
-      // we'll rely on our application logic to track trial status
-      console.log('Will track trial period in application logic for:', subscriptionId);
-    }
-
-  } catch (error) {
-    console.error('Error in trial payment scheduling:', subscriptionId, error);
   }
 }
 

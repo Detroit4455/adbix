@@ -5,7 +5,6 @@ import dbConnect from '@/lib/dbConnect';
 import Subscription from '@/models/Subscription';
 import AdbixPlan from '@/models/AdbixPlan';
 import AdbixAddon from '@/models/AdbixAddon';
-import ServerSettings from '@/models/ServerSettings';
 import User from '@/models/User';
 import RazorpayService, { isRazorpayConfigured } from '@/lib/razorpay';
 
@@ -72,12 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { 
-      planId, 
-      selectedAddons = [], 
-      customerInfo, 
-      notifyInfo
-    } = body;
+    const { planId, selectedAddons = [], customerInfo, notifyInfo } = body;
 
     if (!planId) {
       return NextResponse.json({ error: 'Plan ID is required' }, { status: 400 });
@@ -108,17 +102,6 @@ export async function POST(request: NextRequest) {
         error: 'Razorpay plan not configured for this plan' 
       }, { status: 400 });
     }
-
-    // Get server settings for trial period configuration (applies to all users)
-    const serverSettings = await ServerSettings.getSettings();
-    const enableTrialPeriod = serverSettings.enableTrialPeriod || false;
-    const trialPeriodDays = serverSettings.trialPeriodDays || 30;
-    
-    console.log(`Trial period settings for user ${session.user.email}:`, {
-      enableTrialPeriod,
-      trialPeriodDays,
-      appliedToAllUsers: true
-    });
 
     // Calculate total amount with addons
     let totalAmount = plan.price;
@@ -163,30 +146,22 @@ export async function POST(request: NextRequest) {
     console.log('Creating subscription with current time:', new Date());
     console.log('Current timestamp:', Math.floor(Date.now() / 1000));
 
-    // Prepare subscription data for Razorpay with trial period support
+    // Prepare subscription data for Razorpay with immediate charging
     const currentTime = Math.floor(Date.now() / 1000);
-    
-    // Calculate timing - subscription always starts after authentication
-    // Trial period is handled by our application logic, not Razorpay timing
-    const startTime = currentTime + 120; // Start after 2 minutes for authentication
-    const expireTime = currentTime + (24 * 60 * 60); // Expire in 24 hours for authentication
-
     const subscriptionData: any = {
       plan_id: plan.razorpayPlanId,
       customer_notify: true,
       quantity: 1,
       total_count: 12, // 12 months for annual billing
       customer_id: razorpayCustomer.id,
-      start_at: startTime,
-      expire_by: expireTime,
+      start_at: currentTime + 120, // Start after 2 minutes to allow for authentication
+      expire_by: currentTime + (24 * 60 * 60), // Expire in 24 hours
       notes: {
         userId: session.user.id,
         planId: planId,
         totalAmount: RazorpayService.toPaise(totalAmount),
         addons: JSON.stringify(selectedAddons),
-        enableTrialPeriod: enableTrialPeriod.toString(),
-        trialPeriodDays: trialPeriodDays.toString(),
-        chargeImmediately: enableTrialPeriod ? 'false' : 'true'
+        chargeImmediately: 'true' // Flag to indicate immediate charging should happen after authentication
       },
       notify_info: notifyInfo ? {
         notify_phone: notifyInfo.phone,
@@ -194,22 +169,10 @@ export async function POST(request: NextRequest) {
       } : undefined
     };
 
-    // Note: charge_at is automatically set by Razorpay based on start_at
-    // Trial period is handled by our webhook logic, not by delaying start_at
-
-    if (enableTrialPeriod) {
-      console.log('🔥 Creating subscription with trial period (admin-configured):');
-      console.log('⏰ Current time:', new Date(currentTime * 1000));
-      console.log('🚀 Subscription start time:', new Date(startTime * 1000));
-      console.log('📅 Trial period:', trialPeriodDays, 'days (from server settings)');
-      console.log('💳 Note: Subscription starts normally, trial period handled by webhook logic');
-      console.log('🎁 First payment will be skipped/delayed by webhook handler');
-    } else {
-      console.log('🔥 Creating subscription with immediate charging (trial disabled):');
-      console.log('⏰ Current time:', new Date(currentTime * 1000));
-      console.log('🚀 Start time:', new Date(startTime * 1000));
-      console.log('💳 Note: Razorpay will auto-charge after successful authentication');
-    }
+    console.log('🔥 Creating subscription with immediate charging:');
+    console.log('⏰ Current time:', new Date(currentTime * 1000));
+    console.log('🚀 Start time:', new Date((currentTime + 120) * 1000));
+    console.log('💳 Note: Razorpay will auto-charge after successful authentication');
 
     // Add addons to subscription if any
     if (addonDetails.length > 0) {
@@ -256,9 +219,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Save subscription to database
-    const trialStartDate = enableTrialPeriod ? new Date() : undefined;
-    const trialEndDate = enableTrialPeriod ? new Date(Date.now() + (trialPeriodDays * 24 * 60 * 60 * 1000)) : undefined;
-
     const subscription = new Subscription({
       userId: session.user.id,
       planId: planId,
@@ -270,13 +230,6 @@ export async function POST(request: NextRequest) {
       endDate: razorpaySubscription.end_at ? new Date(razorpaySubscription.end_at * 1000) : undefined,
       nextBillingDate: razorpaySubscription.charge_at ? new Date(razorpaySubscription.charge_at * 1000) : undefined,
       totalCount: razorpaySubscription.total_count,
-      
-      // Trial period data
-      enableTrialPeriod: enableTrialPeriod,
-      trialPeriodDays: enableTrialPeriod ? trialPeriodDays : 0,
-      trialStartDate: trialStartDate,
-      trialEndDate: trialEndDate,
-      isInTrial: enableTrialPeriod,
       paidCount: razorpaySubscription.paid_count,
       remainingCount: razorpaySubscription.remaining_count,
       shortUrl: razorpaySubscription.short_url,
