@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     console.log('Creating subscription with current time:', new Date());
     console.log('Current timestamp:', Math.floor(Date.now() / 1000));
 
-    // Prepare subscription data for Razorpay with immediate charging
+    // Prepare subscription data for Razorpay with proper timing for UPI Autopay
     const currentTime = Math.floor(Date.now() / 1000);
     const subscriptionData: any = {
       plan_id: plan.razorpayPlanId,
@@ -154,14 +154,14 @@ export async function POST(request: NextRequest) {
       quantity: 1,
       total_count: 12, // 12 months for annual billing
       customer_id: razorpayCustomer.id,
-      start_at: currentTime + 120, // Start after 2 minutes to allow for authentication
+      start_at: currentTime + 300, // Start after 5 minutes to allow for authentication
       expire_by: currentTime + (24 * 60 * 60), // Expire in 24 hours
       notes: {
         userId: session.user.id,
         planId: planId,
         totalAmount: RazorpayService.toPaise(totalAmount),
         addons: JSON.stringify(selectedAddons),
-        chargeImmediately: 'true' // Flag to indicate immediate charging should happen after authentication
+        upiAutopay: 'true' // Flag to indicate UPI Autopay subscription
       },
       notify_info: notifyInfo ? {
         notify_phone: notifyInfo.phone,
@@ -169,10 +169,10 @@ export async function POST(request: NextRequest) {
       } : undefined
     };
 
-    console.log('🔥 Creating subscription with immediate charging:');
+    console.log('🔥 Creating UPI Autopay subscription:');
     console.log('⏰ Current time:', new Date(currentTime * 1000));
-    console.log('🚀 Start time:', new Date((currentTime + 120) * 1000));
-    console.log('💳 Note: Razorpay will auto-charge after successful authentication');
+    console.log('🚀 Start time:', new Date((currentTime + 300) * 1000));
+    console.log('💳 Note: UPI Autopay will auto-charge after mandate authentication');
 
     // Add addons to subscription if any
     if (addonDetails.length > 0) {
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
       )) {
         // Retry with a later start time
         console.log('Retrying subscription creation with later start time...');
-        subscriptionData.start_at = Math.floor(Date.now() / 1000) + 7200; // 2 hours from now
+        subscriptionData.start_at = Math.floor(Date.now() / 1000) + 600; // 10 minutes from now
         
         try {
           razorpaySubscription = await RazorpayService.createSubscription(subscriptionData);
@@ -266,4 +266,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
