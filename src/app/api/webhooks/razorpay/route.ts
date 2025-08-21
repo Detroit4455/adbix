@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting based on IP address
-    const clientIp = request.ip || request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     if (isRateLimited(clientIp)) {
       console.warn('Webhook rate limit exceeded for IP:', clientIp);
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
@@ -292,15 +292,20 @@ export async function POST(request: NextRequest) {
  */
 async function handleSubscriptionActivated(subscriptionData: any) {
   try {
+    console.log('🎉 Processing subscription.activated webhook for:', subscriptionData.id);
+    
     const subscription = await Subscription.findOne({
       razorpaySubscriptionId: subscriptionData.id
     });
 
     if (!subscription) {
-      console.error('Subscription not found:', subscriptionData.id);
+      console.error('❌ Subscription not found in database:', subscriptionData.id);
       return;
     }
 
+    const previousStatus = subscription.status;
+    
+    // Update subscription status and billing information
     subscription.status = 'active';
     subscription.startDate = new Date(subscriptionData.start_at * 1000);
     subscription.nextBillingDate = subscriptionData.charge_at ? 
@@ -309,25 +314,39 @@ async function handleSubscriptionActivated(subscriptionData: any) {
       new Date(subscriptionData.current_start * 1000) : subscription.currentPeriodStart;
     subscription.currentPeriodEnd = subscriptionData.current_end ? 
       new Date(subscriptionData.current_end * 1000) : subscription.currentPeriodEnd;
+    
+    // Update payment counts if available
+    if (subscriptionData.paid_count !== undefined) {
+      subscription.paidCount = subscriptionData.paid_count;
+    }
+    if (subscriptionData.remaining_count !== undefined) {
+      subscription.remainingCount = subscriptionData.remaining_count;
+    }
 
     subscription.webhookEvents.push({
       eventType: 'subscription.activated',
       eventData: {
         subscriptionId: subscriptionData.id,
-        status: subscriptionData.status,
+        previousStatus,
+        newStatus: subscriptionData.status,
         startAt: subscriptionData.start_at,
         chargeAt: subscriptionData.charge_at,
         currentStart: subscriptionData.current_start,
-        currentEnd: subscriptionData.current_end
+        currentEnd: subscriptionData.current_end,
+        paidCount: subscriptionData.paid_count,
+        remainingCount: subscriptionData.remaining_count,
+        processedAt: new Date()
       },
       processedAt: new Date()
     });
 
     await saveSubscriptionAndInvalidateCache(subscription);
-    console.log('Subscription activated:', subscription.razorpaySubscriptionId);
+    console.log('✅ Subscription activated successfully:', subscription.razorpaySubscriptionId);
+    console.log('📊 Status transition:', previousStatus, '→', subscription.status);
+    console.log('💰 Paid count:', subscription.paidCount, '| Remaining:', subscription.remainingCount);
 
   } catch (error) {
-    console.error('Error handling subscription activated:', error);
+    console.error('❌ Error handling subscription activated:', subscriptionData.id, error);
   }
 }
 
@@ -336,16 +355,22 @@ async function handleSubscriptionActivated(subscriptionData: any) {
  */
 async function handleSubscriptionCharged(paymentData: any, subscriptionData: any) {
   try {
+    console.log('💳 Processing subscription.charged webhook for:', subscriptionData.id);
+    console.log('💰 Payment amount:', paymentData.amount / 100, 'INR');
+    
     const subscription = await Subscription.findOne({
       razorpaySubscriptionId: subscriptionData.id
     });
 
     if (!subscription) {
-      console.error('Subscription not found:', subscriptionData.id);
+      console.error('❌ Subscription not found in database:', subscriptionData.id);
       return;
     }
 
+    const previousStatus = subscription.status;
     const wasFirstPayment = subscription.paidCount === 0 || subscription.status === 'authenticated';
+    
+    console.log('📊 Previous status:', previousStatus, '| Was first payment:', wasFirstPayment);
     
     // Update billing information
     subscription.status = 'active'; // Ensure subscription becomes active after payment
@@ -374,21 +399,31 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
         status: paymentData.status,
         method: paymentData.method,
         wasFirstPayment,
-        activatedFromAuthenticated: wasFirstPayment && subscription.status === 'authenticated'
+        previousStatus,
+        activatedFromAuthenticated: wasFirstPayment && previousStatus === 'authenticated',
+        paidCount: subscriptionData.paid_count,
+        remainingCount: subscriptionData.remaining_count,
+        nextBillingDate: subscriptionData.charge_at ? new Date(subscriptionData.charge_at * 1000) : null
       },
       processedAt: new Date()
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     
     if (wasFirstPayment) {
-      console.log('First payment charged, subscription activated:', subscription.razorpaySubscriptionId, paymentData.amount);
+      console.log('🎉 First payment charged, subscription activated:', subscription.razorpaySubscriptionId);
+      console.log('📊 Status transition:', previousStatus, '→', subscription.status);
+      console.log('💰 Payment processed:', paymentData.amount / 100, 'INR');
     } else {
-    console.log('Subscription charged:', subscription.razorpaySubscriptionId, paymentData.amount);
+      console.log('✅ Recurring payment charged:', subscription.razorpaySubscriptionId);
+      console.log('💰 Payment processed:', paymentData.amount / 100, 'INR');
+      console.log('📅 Next billing date:', subscription.nextBillingDate);
     }
+    
+    console.log('📈 Paid count:', subscription.paidCount, '| Remaining:', subscription.remainingCount);
 
   } catch (error) {
-    console.error('Error handling subscription charged:', error);
+    console.error('❌ Error handling subscription charged:', subscriptionData.id, error);
   }
 }
 
