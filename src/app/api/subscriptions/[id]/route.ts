@@ -191,28 +191,95 @@ export async function PUT(
             
             // Check if the charge time has passed or is very close
             if (timeDiff <= 0) {
-              // Charge time has passed - subscription should have been charged
-              return NextResponse.json({
-                success: false,
-                message: '⏰ Subscription charge time has passed!\n\nYour subscription was scheduled to charge at ' + scheduledChargeTime.toLocaleString() + ', but no payment was processed. This could be due to:\n\n• Insufficient balance in UPI account\n• Bank/UPI service temporarily down\n• Mandate not properly activated\n\nPlease check with your bank or try creating a fresh subscription.',
-                timing: {
-                  scheduled: scheduledChargeTime,
-                  current: currentTime,
-                  timePassedMinutes: Math.abs(Math.round(timeDiff / (1000 * 60))),
-                  status: 'overdue'
-                },
-                subscription: {
-                  id: subscription._id,
-                  status: updatedRazorpaySubscription.status,
-                  razorpayStatus: updatedRazorpaySubscription.status
-                },
-                suggestions: [
-                  'Check your bank account balance',
-                  'Verify UPI mandate is active in your banking app',
-                  'Contact your bank if mandate seems inactive',
-                  'Consider creating a fresh subscription'
-                ]
-              });
+              // Charge time has passed - check if Razorpay actually processed the payment
+              console.log('Charge time has passed, checking Razorpay status:', updatedRazorpaySubscription.status);
+              
+              if (updatedRazorpaySubscription.status === 'active') {
+                // SUCCESS! Razorpay shows active, but our local DB wasn't updated
+                console.log('🎉 SUCCESS: Subscription is ACTIVE in Razorpay, syncing local database');
+                
+                // Update local subscription to match Razorpay
+                subscription.status = 'active';
+                subscription.paidCount = updatedRazorpaySubscription.paid_count || 1;
+                subscription.remainingCount = updatedRazorpaySubscription.remaining_count;
+                
+                // Update billing dates if available
+                if (updatedRazorpaySubscription.charge_at) {
+                  subscription.nextBillingDate = new Date(updatedRazorpaySubscription.charge_at * 1000);
+                }
+                if (updatedRazorpaySubscription.current_start) {
+                  subscription.currentPeriodStart = new Date(updatedRazorpaySubscription.current_start * 1000);
+                }
+                if (updatedRazorpaySubscription.current_end) {
+                  subscription.currentPeriodEnd = new Date(updatedRazorpaySubscription.current_end * 1000);
+                }
+                
+                // Add sync event to webhook log
+                subscription.webhookEvents.push({
+                  eventType: 'subscription.status_synced_active',
+                  eventData: {
+                    message: 'Local status synced with Razorpay - subscription is active',
+                    razorpayStatus: updatedRazorpaySubscription.status,
+                    previousLocalStatus: 'authenticated',
+                    newLocalStatus: 'active',
+                    syncedAt: new Date(),
+                    paidCount: updatedRazorpaySubscription.paid_count,
+                    timingInfo: {
+                      scheduled: scheduledChargeTime,
+                      current: currentTime,
+                      timePassedMinutes: Math.abs(Math.round(timeDiff / (1000 * 60)))
+                    }
+                  },
+                  processedAt: new Date()
+                });
+                
+                await subscription.save();
+                
+                return NextResponse.json({
+                  success: true,
+                  message: '🎉 Subscription Successfully Activated!\n\nGreat news! Your subscription was charged successfully and is now ACTIVE. Our system has been updated to reflect the correct status.\n\n✅ Payment processed at scheduled time\n✅ UPI Autopay mandate working correctly\n✅ Subscription fully activated',
+                  timing: {
+                    scheduled: scheduledChargeTime,
+                    current: currentTime,
+                    timePassedMinutes: Math.abs(Math.round(timeDiff / (1000 * 60))),
+                    status: 'completed_successfully'
+                  },
+                  subscription: {
+                    id: subscription._id,
+                    status: 'active',
+                    razorpayStatus: updatedRazorpaySubscription.status,
+                    paidCount: updatedRazorpaySubscription.paid_count,
+                    remainingCount: updatedRazorpaySubscription.remaining_count,
+                    statusSynced: true,
+                    nextBillingDate: subscription.nextBillingDate
+                  },
+                  action: 'Database successfully updated to match Razorpay status'
+                });
+                
+              } else {
+                // Razorpay also shows not active - genuine failure
+                return NextResponse.json({
+                  success: false,
+                  message: '⏰ Subscription charge time has passed!\n\nYour subscription was scheduled to charge at ' + scheduledChargeTime.toLocaleString() + ', but no payment was processed. This could be due to:\n\n• Insufficient balance in UPI account\n• Bank/UPI service temporarily down\n• Mandate not properly activated\n\nPlease check with your bank or try creating a fresh subscription.',
+                  timing: {
+                    scheduled: scheduledChargeTime,
+                    current: currentTime,
+                    timePassedMinutes: Math.abs(Math.round(timeDiff / (1000 * 60))),
+                    status: 'overdue'
+                  },
+                  subscription: {
+                    id: subscription._id,
+                    status: updatedRazorpaySubscription.status,
+                    razorpayStatus: updatedRazorpaySubscription.status
+                  },
+                  suggestions: [
+                    'Check your bank account balance',
+                    'Verify UPI mandate is active in your banking app',
+                    'Contact your bank if mandate seems inactive',
+                    'Consider creating a fresh subscription'
+                  ]
+                });
+              }
             } else if (timeDiff <= 10 * 60 * 1000) {
               // Charge time is within 10 minutes - should charge soon
               return NextResponse.json({
