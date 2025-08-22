@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     // Get local subscription
     const localSubscription = await Subscription.findOne({
       _id: subscriptionId,
-      userId: session.user.id
+      userId: session.user.mobileNumber
     });
 
     if (!localSubscription) {

@@ -23,7 +23,7 @@ export async function GET(
 
     const subscription = await Subscription.findOne({
       _id: id,
-      userId: session.user.id
+      userId: session.user.mobileNumber
     });
 
     if (!subscription) {
@@ -115,7 +115,7 @@ export async function PUT(
 
     const subscription = await Subscription.findOne({
       _id: id,
-      userId: session.user.id
+      userId: session.user.mobileNumber
     });
 
     if (!subscription) {
@@ -346,7 +346,7 @@ export async function PUT(
           action,
           actionData,
           razorpayData: updatedRazorpaySubscription,
-          performedBy: session.user.id
+          performedBy: session.user.mobileNumber
         },
         processedAt: new Date()
       });

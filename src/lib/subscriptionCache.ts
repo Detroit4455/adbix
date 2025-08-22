@@ -71,15 +71,33 @@ class SubscriptionCache {
       
       if (user && user.requireSubscriptionCheck !== false) {
         // Only check subscription if user exists and has checking enabled
+        console.log(`🔍 Checking subscription for user: ${mobileNumber}`);
+        
         const subscription = await Subscription.findOne({ 
           userId: mobileNumber, 
           status: { $in: ['authenticated', 'active'] } 
-        }).select('status').lean();
+        }).select('status userId').lean();
         
         subscriptionActive = !!subscription;
+        
+        if (subscription) {
+          console.log(`✅ Found active subscription for user: ${mobileNumber}, status: ${subscription.status}`);
+        } else {
+          console.log(`❌ No active subscription found for user: ${mobileNumber}`);
+          
+          // Debug: Check if there are any subscriptions for this user with different statuses
+          const allUserSubscriptions = await Subscription.find({ userId: mobileNumber }).select('status').lean();
+          if (allUserSubscriptions.length > 0) {
+            console.log(`⚠️  Found ${allUserSubscriptions.length} subscriptions for user ${mobileNumber} with statuses:`, 
+              allUserSubscriptions.map(s => s.status));
+          } else {
+            console.log(`⚠️  No subscriptions found for user ${mobileNumber} at all`);
+          }
+        }
       } else if (user && user.requireSubscriptionCheck === false) {
         // User has subscription checking disabled
         subscriptionActive = true; // Allow access
+        console.log(`✅ Subscription check disabled for user: ${mobileNumber}`);
       }
 
       const result = {

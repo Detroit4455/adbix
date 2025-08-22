@@ -21,6 +21,7 @@
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.1",
     "image-size": "^2.0.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.16.0",

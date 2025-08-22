@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const subscriptions = await Subscription.find({ userId: session.user.id })
+    const subscriptions = await Subscription.find({ userId: session.user.mobileNumber })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Check for existing active subscription
     const existingSubscription = await Subscription.findOne({
-      userId: session.user.id,
+      userId: session.user.mobileNumber,
       status: { $in: ['created', 'authenticated', 'active'] }
     });
 
@@ -129,9 +129,9 @@ export async function POST(request: NextRequest) {
       razorpayCustomer = await RazorpayService.findOrCreateCustomer({
         name: customerInfo?.name || session.user.name || 'Customer',
         email: customerInfo?.email || session.user.email || '',
-        contact: customerInfo?.phone || session.user.id || '',
+        contact: customerInfo?.phone || session.user.mobileNumber || '',
         notes: {
-          userId: session.user.id,
+          userId: session.user.mobileNumber,
           planId: planId
         }
       });
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
       start_at: currentTime + 300, // Start after 5 minutes to allow for authentication
       expire_by: currentTime + (24 * 60 * 60), // Expire in 24 hours
       notes: {
-        userId: session.user.id,
+        userId: session.user.mobileNumber,
         planId: planId,
         totalAmount: RazorpayService.toPaise(totalAmount),
         addons: JSON.stringify(selectedAddons),
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
 
     // Save subscription to database
     const subscription = new Subscription({
-      userId: session.user.id,
+      userId: session.user.mobileNumber,
       planId: planId,
       razorpaySubscriptionId: razorpaySubscription.id,
       razorpayPlanId: plan.razorpayPlanId,
