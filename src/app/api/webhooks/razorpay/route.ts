@@ -331,6 +331,10 @@ export async function POST(request: NextRequest) {
         await handleSubscriptionHalted(payload.subscription.entity);
         break;
 
+      case 'subscription.expired':
+        await handleSubscriptionExpired(payload.subscription.entity);
+        break;
+
       case 'payment.failed':
         await handlePaymentFailed(payload.payment.entity);
         break;
@@ -790,17 +794,43 @@ async function handleSubscriptionHalted(subscriptionData: any) {
       note: 'Official status change event - subscription halted'
     });
     
-    subscription.webhookEvents.push({
-      eventType: 'subscription.halted',
-      eventData: subscriptionData,
-      processedAt: new Date()
-    });
-
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription halted:', subscription.razorpaySubscriptionId);
 
   } catch (error) {
     console.error('Error handling subscription halted:', error);
+  }
+}
+
+/**
+ * Handle subscription expired event
+ */
+async function handleSubscriptionExpired(subscriptionData: any) {
+  try {
+    const subscription = await Subscription.findOne({
+      razorpaySubscriptionId: subscriptionData.id
+    });
+
+    if (!subscription) {
+      console.error('Subscription not found:', subscriptionData.id);
+      return;
+    }
+
+    // Update end date
+    subscription.endDate = subscriptionData.ended_at ? 
+      new Date(subscriptionData.ended_at * 1000) : new Date();
+
+    // OFFICIAL STATUS CHANGE EVENT - subscription.expired is allowed to change status
+    updateSubscriptionStatus(subscription, 'expired', 'subscription.expired', {
+      ...subscriptionData,
+      note: 'Official status change event - subscription expired'
+    });
+
+    await saveSubscriptionAndInvalidateCache(subscription);
+    console.log('Subscription expired:', subscription.razorpaySubscriptionId);
+
+  } catch (error) {
+    console.error('Error handling subscription expired:', error);
   }
 }
 
@@ -824,7 +854,7 @@ async function handlePaymentFailed(paymentData: any) {
         processedAt: new Date()
       });
 
-      await subscription.save();
+      await saveSubscriptionAndInvalidateCache(subscription);
       console.log('Payment failed for subscription:', subscription.razorpaySubscriptionId);
     } else {
       console.log('Payment failed for order:', paymentData.order_id);
@@ -874,7 +904,7 @@ async function handlePaymentAuthorized(paymentData: any) {
         processedAt: new Date()
       });
 
-      await subscription.save();
+      await saveSubscriptionAndInvalidateCache(subscription);
       console.log('Payment authorization logged for subscription:', subscription.razorpaySubscriptionId);
     }
     

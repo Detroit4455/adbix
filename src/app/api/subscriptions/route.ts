@@ -9,6 +9,37 @@ import User from '@/models/User';
 import RazorpayService, { isRazorpayConfigured } from '@/lib/razorpay';
 
 /**
+ * Configuration for subscription creation
+ * 
+ * IMPORTANT: start_at is optional as per Razorpay documentation
+ * 
+ * Benefits of immediate start (USE_DELAYED_START: false):
+ * - Simpler flow - Razorpay handles all timing automatically
+ * - No risk of timing issues or expired start_at times
+ * - Better user experience - subscription starts immediately
+ * - Follows Razorpay's recommended practice for UPI Autopay
+ * 
+ * Benefits of delayed start (USE_DELAYED_START: true):
+ * - Gives time for UPI mandate authentication
+ * - More control over exact start timing
+ * - Can handle specific business requirements for delayed billing
+ */
+const SUBSCRIPTION_CONFIG = {
+  // Whether to use delayed start for UPI Autopay subscriptions
+  // true: Uses start_at parameter with configured delay for mandate authentication
+  // false: No start_at parameter - Razorpay handles timing automatically (RECOMMENDED)
+  USE_DELAYED_START: false,
+  
+  // Delay in seconds if using delayed start (default: 300 = 5 minutes)
+  // Only used when USE_DELAYED_START is true
+  START_DELAY_SECONDS: 300,
+  
+  // Subscription expiry time in seconds (default: 24 hours)
+  // This is how long the subscription creation link remains valid
+  EXPIRE_BY_SECONDS: 24 * 60 * 60
+};
+
+/**
  * Get UTC Unix timestamp (seconds since epoch) as required by Razorpay
  * @param offsetSeconds - Optional offset in seconds to add to current time
  * @returns UTC Unix timestamp (10-digit number)
@@ -158,19 +189,16 @@ export async function POST(request: NextRequest) {
     console.log('Creating subscription with current time:', new Date().toISOString());
     console.log('Current UTC timestamp:', Math.floor(Date.now() / 1000));
 
-    // Prepare subscription data for Razorpay with proper UTC timing for UPI Autopay
-    // Razorpay requires Unix timestamp in UTC (seconds since epoch)
+    // Prepare subscription data for Razorpay
+    // start_at is optional - if not provided, Razorpay starts immediately or at next billing cycle
     const currentUtcTime = getUtcTimestamp(); // Current UTC timestamp
-    const startAtTime = getUtcTimestamp(300); // Start after 5 minutes to allow for authentication
-    const expireByTime = getUtcTimestamp(24 * 60 * 60); // Expire in 24 hours
+    const expireByTime = getUtcTimestamp(SUBSCRIPTION_CONFIG.EXPIRE_BY_SECONDS); // Expire in 24 hours
     
-    // Validate timestamp format (should be 10-digit Unix timestamp)
-    if (startAtTime.toString().length !== 10) {
-      console.error('Invalid timestamp format for start_at:', startAtTime);
-      return NextResponse.json({ 
-        error: 'Invalid timestamp format for subscription start time' 
-      }, { status: 500 });
-    }
+    // Determine if we should use start_at parameter based on configuration
+    // For UPI Autopay, we can either:
+    // 1. Start immediately (no start_at) - Razorpay handles timing automatically (recommended)
+    // 2. Start with delay (with start_at) - For mandate authentication time
+    const useDelayedStart = SUBSCRIPTION_CONFIG.USE_DELAYED_START;
     
     const subscriptionData: any = {
       plan_id: plan.razorpayPlanId,
@@ -178,7 +206,6 @@ export async function POST(request: NextRequest) {
       quantity: 1,
       total_count: 12, // 12 months for annual billing
       customer_id: razorpayCustomer.id,
-      start_at: startAtTime, // UTC Unix timestamp (seconds since epoch)
       expire_by: expireByTime, // UTC Unix timestamp (seconds since epoch)
       notes: {
         userId: session.user.mobileNumber,
@@ -193,12 +220,34 @@ export async function POST(request: NextRequest) {
       } : undefined
     };
 
-    console.log('🔥 Creating UPI Autopay subscription:');
-    console.log('⏰ Current UTC time:', new Date(currentUtcTime * 1000).toISOString());
-    console.log('🚀 Start UTC time:', new Date(startAtTime * 1000).toISOString());
-    console.log('📅 Start timestamp (UTC):', startAtTime, '(format: Unix timestamp - seconds since epoch)');
-    console.log('⏰ Expire timestamp (UTC):', expireByTime, '(24 hours from now)');
-    console.log('💳 Note: UPI Autopay will auto-charge after mandate authentication');
+    // Conditionally add start_at if delayed start is required
+    if (useDelayedStart) {
+      const startAtTime = getUtcTimestamp(SUBSCRIPTION_CONFIG.START_DELAY_SECONDS); // Start after configured delay
+      
+      // Validate timestamp format (should be 10-digit Unix timestamp)
+      if (startAtTime.toString().length !== 10) {
+        console.error('Invalid timestamp format for start_at:', startAtTime);
+        return NextResponse.json({ 
+          error: 'Invalid timestamp format for subscription start time' 
+        }, { status: 500 });
+      }
+      
+      subscriptionData.start_at = startAtTime;
+      
+      console.log('🔥 Creating UPI Autopay subscription with delayed start:');
+      console.log('⏰ Current UTC time:', new Date(currentUtcTime * 1000).toISOString());
+      console.log('🚀 Start UTC time:', new Date(startAtTime * 1000).toISOString());
+      console.log('📅 Start timestamp (UTC):', startAtTime, '(format: Unix timestamp - seconds since epoch)');
+      console.log('⏰ Delay configured:', SUBSCRIPTION_CONFIG.START_DELAY_SECONDS, 'seconds');
+      console.log('⏰ Expire timestamp (UTC):', expireByTime, `(${SUBSCRIPTION_CONFIG.EXPIRE_BY_SECONDS / 3600} hours from now)`);
+      console.log('💳 Note: UPI Autopay will auto-charge after mandate authentication');
+    } else {
+      console.log('🔥 Creating UPI Autopay subscription with immediate start:');
+      console.log('⏰ Current UTC time:', new Date(currentUtcTime * 1000).toISOString());
+      console.log('🚀 Start time: IMMEDIATE (no start_at parameter - Razorpay handles timing)');
+      console.log('⏰ Expire timestamp (UTC):', expireByTime, `(${SUBSCRIPTION_CONFIG.EXPIRE_BY_SECONDS / 3600} hours from now)`);
+      console.log('💳 Note: UPI Autopay will handle mandate authentication and charging automatically');
+    }
 
     // Add addons to subscription if any
     if (addonDetails.length > 0) {
