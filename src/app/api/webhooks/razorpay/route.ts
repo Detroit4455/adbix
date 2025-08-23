@@ -200,8 +200,9 @@ export async function POST(request: NextRequest) {
     const webhookData = JSON.parse(body);
     const { event, payload } = webhookData;
 
-    // Replay protection
-    const eventId = payload?.payment?.entity?.id || payload?.subscription?.entity?.id || `${event}_${Date.now()}`;
+    // Replay protection - make eventId unique per event type
+    const baseId = payload?.payment?.entity?.id || payload?.subscription?.entity?.id || Date.now().toString();
+    const eventId = `${event}_${baseId}`;
     if (isWebhookReplay(eventId, Date.now())) {
       console.warn('Webhook replay detected for event:', eventId);
       return NextResponse.json({ error: 'Duplicate webhook detected' }, { status: 409 });
@@ -599,17 +600,16 @@ async function handleSubscriptionAuthenticated(subscriptionData: any) {
     console.log('Subscription authenticated (UPI Autopay approved):', subscription.razorpaySubscriptionId);
 
     // For UPI Autopay, wait for the subscription.charged event
-    // No need to trigger anything - Razorpay will automatically charge at the scheduled time
-    console.log('UPI Autopay mandate approved - waiting for automatic charge at:', new Date(subscriptionData.charge_at * 1000));
+    // No need to trigger anything - Razorpay will automatically charge immediately after authentication
+    console.log('UPI Autopay mandate approved - subscription will charge immediately');
     
     // Log the expected flow for UPI Autopay
     subscription.webhookEvents.push({
       eventType: 'subscription.upi_autopay_ready',
       eventData: {
-        message: 'UPI Autopay mandate approved - subscription will auto-charge at scheduled time',
-        chargeAt: subscriptionData.charge_at,
-        chargeAtDate: new Date(subscriptionData.charge_at * 1000),
-        expectedNextEvent: 'subscription.charged'
+        message: 'UPI Autopay mandate approved - subscription will charge immediately',
+        expectedNextEvent: 'subscription.charged',
+        note: 'No start_at delay - immediate charging after authentication'
       },
       processedAt: new Date()
     });
