@@ -9,6 +9,18 @@ import User from '@/models/User';
 import RazorpayService, { isRazorpayConfigured } from '@/lib/razorpay';
 
 /**
+ * Get UTC Unix timestamp (seconds since epoch) as required by Razorpay
+ * @param offsetSeconds - Optional offset in seconds to add to current time
+ * @returns UTC Unix timestamp (10-digit number)
+ * 
+ * Example: getUtcTimestamp() returns 1724234567 (current time)
+ * Example: getUtcTimestamp(300) returns 1724234867 (5 minutes from now)
+ */
+function getUtcTimestamp(offsetSeconds: number = 0): number {
+  return Math.floor(Date.now() / 1000) + offsetSeconds;
+}
+
+/**
  * GET /api/subscriptions - Get user's subscriptions
  */
 export async function GET(request: NextRequest) {
@@ -143,18 +155,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Log subscription timing for debugging
-    console.log('Creating subscription with current time:', new Date());
-    console.log('Current timestamp:', Math.floor(Date.now() / 1000));
+    console.log('Creating subscription with current time:', new Date().toISOString());
+    console.log('Current UTC timestamp:', Math.floor(Date.now() / 1000));
 
-    // Prepare subscription data for Razorpay (start_at is optional - will start immediately after authentication)
-    const currentTime = Math.floor(Date.now() / 1000);
+    // Prepare subscription data for Razorpay with proper UTC timing for UPI Autopay
+    // Razorpay requires Unix timestamp in UTC (seconds since epoch)
+    const currentUtcTime = getUtcTimestamp(); // Current UTC timestamp
+    const startAtTime = getUtcTimestamp(300); // Start after 5 minutes to allow for authentication
+    const expireByTime = getUtcTimestamp(24 * 60 * 60); // Expire in 24 hours
+    
+    // Validate timestamp format (should be 10-digit Unix timestamp)
+    if (startAtTime.toString().length !== 10) {
+      console.error('Invalid timestamp format for start_at:', startAtTime);
+      return NextResponse.json({ 
+        error: 'Invalid timestamp format for subscription start time' 
+      }, { status: 500 });
+    }
+    
     const subscriptionData: any = {
       plan_id: plan.razorpayPlanId,
       customer_notify: true,
       quantity: 1,
       total_count: 12, // 12 months for annual billing
       customer_id: razorpayCustomer.id,
-      expire_by: currentTime + (24 * 60 * 60), // Expire in 24 hours
+      start_at: startAtTime, // UTC Unix timestamp (seconds since epoch)
+      expire_by: expireByTime, // UTC Unix timestamp (seconds since epoch)
       notes: {
         userId: session.user.mobileNumber,
         planId: planId,
@@ -169,8 +194,11 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('🔥 Creating UPI Autopay subscription:');
-    console.log('⏰ Current time:', new Date(currentTime * 1000));
-    console.log('💳 Note: Subscription will start immediately after mandate authentication');
+    console.log('⏰ Current UTC time:', new Date(currentUtcTime * 1000).toISOString());
+    console.log('🚀 Start UTC time:', new Date(startAtTime * 1000).toISOString());
+    console.log('📅 Start timestamp (UTC):', startAtTime, '(format: Unix timestamp - seconds since epoch)');
+    console.log('⏰ Expire timestamp (UTC):', expireByTime, '(24 hours from now)');
+    console.log('💳 Note: UPI Autopay will auto-charge after mandate authentication');
 
     // Add addons to subscription if any
     if (addonDetails.length > 0) {
@@ -190,9 +218,30 @@ export async function POST(request: NextRequest) {
       razorpaySubscription = await RazorpayService.createSubscription(subscriptionData);
     } catch (error: any) {
       console.error('Error creating Razorpay subscription:', error);
+      
+      // Handle timing-related errors
+      if (error.error && (
+        error.error.description?.includes('start time is past') ||
+        error.error.description?.includes('Cannot do an auth transaction')
+      )) {
+        // Retry with a later start time
+        console.log('Retrying subscription creation with later start time...');
+        subscriptionData.start_at = Math.floor(Date.now() / 1000) + 600; // 10 minutes from now
+        
+        try {
+          razorpaySubscription = await RazorpayService.createSubscription(subscriptionData);
+          console.log('Subscription created successfully on retry');
+        } catch (retryError) {
+          console.error('Error on retry:', retryError);
+          return NextResponse.json({ 
+            error: 'Failed to create subscription due to timing issues. Please try again in a few minutes.' 
+          }, { status: 500 });
+        }
+      } else {
       return NextResponse.json({ 
         error: 'Failed to create subscription' 
       }, { status: 500 });
+      }
     }
 
     // Save subscription to database

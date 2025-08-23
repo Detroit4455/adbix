@@ -160,6 +160,81 @@ async function saveSubscriptionAndInvalidateCache(subscription: any) {
 }
 
 /**
+ * Events that are allowed to change subscription status
+ * These are official status change events from Razorpay
+ */
+const STATUS_CHANGE_EVENTS = [
+  'subscription.activated',
+  'subscription.pending', 
+  'subscription.halted',
+  'subscription.cancelled',
+  'subscription.completed',
+  'subscription.expired',
+  'subscription.paused',    // Official status change - subscription paused
+  'subscription.resumed'    // Official status change - subscription resumed
+];
+
+/**
+ * Events that are informational only and should NOT change subscription status
+ * These events provide additional data but don't represent status changes
+ */
+const INFORMATIONAL_EVENTS = [
+  'subscription.charged',        // Payment processed - informational
+  'subscription.authenticated', // UPI mandate approved - informational
+  'payment.authorized',          // Payment authorized - informational
+  'payment.failed'               // Payment failed - informational
+];
+
+/**
+ * Safely update subscription status only for allowed events
+ * @param subscription - The subscription document
+ * @param newStatus - The new status to set
+ * @param eventType - The webhook event type that triggered this
+ * @param eventData - Additional event data
+ * @returns boolean - True if status was updated, false if not allowed
+ */
+function updateSubscriptionStatus(subscription: any, newStatus: string, eventType: string, eventData: any = {}): boolean {
+  if (!STATUS_CHANGE_EVENTS.includes(eventType)) {
+    console.log(`ℹ️  Event '${eventType}' is informational - subscription status remains '${subscription.status}'`);
+    
+    // Still log the event for tracking, but don't change status
+    subscription.webhookEvents.push({
+      eventType: eventType,
+      eventData: {
+        ...eventData,
+        note: 'Informational event - status not changed',
+        previousStatus: subscription.status,
+        statusChangeAttempted: newStatus,
+        statusChangeAllowed: false
+      },
+      processedAt: new Date()
+    });
+    
+    return false;
+  }
+
+  // Official status change event - update the status
+  const previousStatus = subscription.status;
+  subscription.status = newStatus;
+  
+  console.log(`✅ Status change allowed for '${eventType}': ${previousStatus} → ${newStatus}`);
+  
+  subscription.webhookEvents.push({
+    eventType: eventType,
+    eventData: {
+      ...eventData,
+      previousStatus,
+      newStatus,
+      statusChangeAllowed: true,
+      statusChanged: true
+    },
+    processedAt: new Date()
+  });
+  
+  return true;
+}
+
+/**
  * POST /api/webhooks/razorpay - Handle Razorpay webhooks
  */
 export async function POST(request: NextRequest) {
@@ -313,8 +388,7 @@ async function handleSubscriptionActivated(subscriptionData: any) {
 
     const previousStatus = subscription.status;
     
-    // Update subscription status and billing information
-    subscription.status = 'active';
+    // Update billing information
     subscription.startDate = new Date(subscriptionData.start_at * 1000);
     subscription.nextBillingDate = subscriptionData.charge_at ? 
       new Date(subscriptionData.charge_at * 1000) : subscription.nextBillingDate;
@@ -331,22 +405,16 @@ async function handleSubscriptionActivated(subscriptionData: any) {
       subscription.remainingCount = subscriptionData.remaining_count;
     }
 
-    subscription.webhookEvents.push({
-      eventType: 'subscription.activated',
-      eventData: {
-        subscriptionId: subscriptionData.id,
-        previousStatus,
-        newStatus: subscriptionData.status,
-        startAt: subscriptionData.start_at,
-        chargeAt: subscriptionData.charge_at,
-        currentStart: subscriptionData.current_start,
-        currentEnd: subscriptionData.current_end,
-        paidCount: subscriptionData.paid_count,
-        remainingCount: subscriptionData.remaining_count,
-        note: 'This event is for regular subscriptions, not UPI Autopay',
-        processedAt: new Date()
-      },
-      processedAt: new Date()
+    // OFFICIAL STATUS CHANGE EVENT - subscription.activated is allowed to change status
+    updateSubscriptionStatus(subscription, 'active', 'subscription.activated', {
+      subscriptionId: subscriptionData.id,
+      startAt: subscriptionData.start_at,
+      chargeAt: subscriptionData.charge_at,
+      currentStart: subscriptionData.current_start,
+      currentEnd: subscriptionData.current_end,
+      paidCount: subscriptionData.paid_count,
+      remainingCount: subscriptionData.remaining_count,
+      note: 'Official status change event - subscription activated'
     });
 
     await saveSubscriptionAndInvalidateCache(subscription);
@@ -385,8 +453,7 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
     
     console.log('📊 Previous status:', previousStatus, '| Was first payment:', wasFirstPayment);
     
-    // Update billing information
-    subscription.status = 'active'; // Ensure subscription becomes active after payment
+    // Update billing information (but NOT status - subscription.charged is informational)
     subscription.paidCount = subscriptionData.paid_count;
     subscription.remainingCount = subscriptionData.remaining_count;
     subscription.nextBillingDate = subscriptionData.charge_at ? 
@@ -402,23 +469,23 @@ async function handleSubscriptionCharged(paymentData: any, subscriptionData: any
       subscription.paymentMethod = minimalPaymentData;
     }
 
-    subscription.webhookEvents.push({
-      eventType: wasFirstPayment ? 'subscription.first_payment_charged' : 'subscription.charged',
-      eventData: { 
-        paymentId: paymentData.id,
-        subscriptionId: subscriptionData.id,
-        amount: paymentData.amount,
-        currency: paymentData.currency,
-        status: paymentData.status,
-        method: paymentData.method,
-        wasFirstPayment,
-        previousStatus,
-        activatedFromAuthenticated: wasFirstPayment && previousStatus === 'authenticated',
-        paidCount: subscriptionData.paid_count,
-        remainingCount: subscriptionData.remaining_count,
-        nextBillingDate: subscriptionData.charge_at ? new Date(subscriptionData.charge_at * 1000) : null
-      },
-      processedAt: new Date()
+    // Log the payment event but DO NOT change subscription status
+    // subscription.charged is an informational event, not a status change event
+    const eventType = wasFirstPayment ? 'subscription.first_payment_charged' : 'subscription.charged';
+    updateSubscriptionStatus(subscription, 'active', eventType, {
+      paymentId: paymentData.id,
+      subscriptionId: subscriptionData.id,
+      amount: paymentData.amount,
+      currency: paymentData.currency,
+      status: paymentData.status,
+      method: paymentData.method,
+      wasFirstPayment,
+      previousStatus,
+      activatedFromAuthenticated: wasFirstPayment && previousStatus === 'authenticated',
+      paidCount: subscriptionData.paid_count,
+      remainingCount: subscriptionData.remaining_count,
+      nextBillingDate: subscriptionData.charge_at ? new Date(subscriptionData.charge_at * 1000) : null,
+      note: 'Payment processed - status remains unchanged as this is informational event'
     });
 
     await saveSubscriptionAndInvalidateCache(subscription);
@@ -454,9 +521,15 @@ async function handleSubscriptionCompleted(subscriptionData: any) {
       return;
     }
 
-    subscription.status = 'completed';
+    // Update end date
     subscription.endDate = subscriptionData.ended_at ? 
       new Date(subscriptionData.ended_at * 1000) : new Date();
+
+    // OFFICIAL STATUS CHANGE EVENT - subscription.completed is allowed to change status
+    updateSubscriptionStatus(subscription, 'completed', 'subscription.completed', {
+      endedAt: subscriptionData.ended_at,
+      note: 'Official status change event - subscription completed'
+    });
     subscription.paidCount = subscriptionData.paid_count;
     subscription.remainingCount = 0;
 
@@ -494,9 +567,15 @@ async function handleSubscriptionCancelled(subscriptionData: any) {
       return;
     }
 
-    subscription.status = 'cancelled';
+    // Update end date
     subscription.endDate = subscriptionData.ended_at ? 
       new Date(subscriptionData.ended_at * 1000) : new Date();
+
+    // OFFICIAL STATUS CHANGE EVENT - subscription.cancelled is allowed to change status
+    updateSubscriptionStatus(subscription, 'cancelled', 'subscription.cancelled', {
+      endedAt: subscriptionData.ended_at,
+      note: 'Official status change event - subscription cancelled'
+    });
 
     subscription.webhookEvents.push({
       eventType: 'subscription.cancelled',
@@ -526,12 +605,10 @@ async function handleSubscriptionPaused(subscriptionData: any) {
       return;
     }
 
-    subscription.status = 'paused';
-
-    subscription.webhookEvents.push({
-      eventType: 'subscription.paused',
-      eventData: subscriptionData,
-      processedAt: new Date()
+    // OFFICIAL STATUS CHANGE EVENT - subscription.paused is allowed to change status
+    updateSubscriptionStatus(subscription, 'paused', 'subscription.paused', {
+      ...subscriptionData,
+      note: 'Official status change event - subscription paused'
     });
 
     await saveSubscriptionAndInvalidateCache(subscription);
@@ -556,12 +633,10 @@ async function handleSubscriptionResumed(subscriptionData: any) {
       return;
     }
 
-    subscription.status = 'active';
-
-    subscription.webhookEvents.push({
-      eventType: 'subscription.resumed',
-      eventData: subscriptionData,
-      processedAt: new Date()
+    // OFFICIAL STATUS CHANGE EVENT - subscription.resumed is allowed to change status
+    updateSubscriptionStatus(subscription, 'active', 'subscription.resumed', {
+      ...subscriptionData,
+      note: 'Official status change event - subscription resumed to active'
     });
 
     await saveSubscriptionAndInvalidateCache(subscription);
@@ -586,35 +661,28 @@ async function handleSubscriptionAuthenticated(subscriptionData: any) {
       return;
     }
 
-    subscription.status = 'authenticated';
+    // Update billing information but NOT status - subscription.authenticated is informational
     subscription.nextBillingDate = subscriptionData.charge_at ? 
       new Date(subscriptionData.charge_at * 1000) : subscription.nextBillingDate;
 
-    subscription.webhookEvents.push({
-      eventType: 'subscription.authenticated',
-      eventData: subscriptionData,
-      processedAt: new Date()
+    // Log the authentication event but DO NOT change subscription status
+    // subscription.authenticated is an informational event, not a status change event
+    updateSubscriptionStatus(subscription, 'authenticated', 'subscription.authenticated', {
+      ...subscriptionData,
+      message: 'UPI Autopay mandate approved - this is informational, status remains unchanged',
+      chargeAt: subscriptionData.charge_at,
+      chargeAtDate: new Date(subscriptionData.charge_at * 1000),
+      expectedNextEvent: 'subscription.charged',
+      note: 'Authentication completed - status remains unchanged as this is informational event'
     });
 
     await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription authenticated (UPI Autopay approved):', subscription.razorpaySubscriptionId);
 
     // For UPI Autopay, wait for the subscription.charged event
-    // No need to trigger anything - Razorpay will automatically charge immediately after authentication
-    console.log('UPI Autopay mandate approved - subscription will charge immediately');
-    
-    // Log the expected flow for UPI Autopay
-    subscription.webhookEvents.push({
-      eventType: 'subscription.upi_autopay_ready',
-      eventData: {
-        message: 'UPI Autopay mandate approved - subscription will charge immediately',
-        expectedNextEvent: 'subscription.charged',
-        note: 'No start_at delay - immediate charging after authentication'
-      },
-      processedAt: new Date()
-    });
-    
-    await subscription.save();
+    // No need to trigger anything - Razorpay will automatically charge at the scheduled time
+    console.log('UPI Autopay mandate approved - waiting for automatic charge at:', new Date(subscriptionData.charge_at * 1000));
+    console.log(`ℹ️  Subscription status remains '${subscription.status}' - authentication is informational only`);
 
   } catch (error) {
     console.error('Error handling subscription authenticated:', error);
@@ -689,13 +757,13 @@ async function handleSubscriptionPending(subscriptionData: any) {
       return;
     }
 
-    subscription.webhookEvents.push({
-      eventType: 'subscription.pending',
-      eventData: subscriptionData,
-      processedAt: new Date()
+    // OFFICIAL STATUS CHANGE EVENT - subscription.pending is allowed to change status
+    updateSubscriptionStatus(subscription, 'pending', 'subscription.pending', {
+      ...subscriptionData,
+      note: 'Official status change event - subscription pending'
     });
 
-    await subscription.save();
+    await saveSubscriptionAndInvalidateCache(subscription);
     console.log('Subscription pending:', subscription.razorpaySubscriptionId);
 
   } catch (error) {
@@ -717,7 +785,10 @@ async function handleSubscriptionHalted(subscriptionData: any) {
       return;
     }
 
-    subscription.status = 'paused'; // Use paused for halted status
+    // OFFICIAL STATUS CHANGE EVENT - subscription.halted is allowed to change status
+    updateSubscriptionStatus(subscription, 'halted', 'subscription.halted', {
+      note: 'Official status change event - subscription halted'
+    });
     
     subscription.webhookEvents.push({
       eventType: 'subscription.halted',
