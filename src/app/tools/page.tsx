@@ -120,13 +120,43 @@ export default function ToolsPage() {
       />
       <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
         <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
-        <div className="container mx-auto px-6 py-8">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Tools</h1>
-            <p className="text-lg text-gray-600">
-              Powerful tools to help you build, manage, and optimize your websites
-            </p>
+        
+        {/* Hero Section - Mobile Optimized */}
+        <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-700 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center mb-3 sm:mb-4">
+                  <svg className="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight">
+                    Tools
+                  </h1>
+                </div>
+                <p className="text-indigo-100 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6 max-w-2xl leading-relaxed">
+                  Powerful tools to help you build, manage, and optimize your websites
+                </p>
+              </div>
+              
+              {/* Stats Cards - Mobile Responsive */}
+              <div className="mt-6 sm:mt-8 lg:mt-0 lg:ml-8">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
+                    <div className="text-xl sm:text-2xl font-bold">{tools.length}</div>
+                    <div className="text-xs sm:text-sm text-indigo-100">Tools</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
+                    <div className="text-xl sm:text-2xl font-bold">1</div>
+                    <div className="text-xs sm:text-sm text-indigo-100">Available</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tools.map((tool) => (

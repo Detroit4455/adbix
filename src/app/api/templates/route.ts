@@ -21,16 +21,27 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const type = searchParams.get('type');
     const search = searchParams.get('search');
+    const templateType = searchParams.get('templateType') || 'public'; // New parameter
 
-    // Build filter object - show public templates and custom templates for this user
+    // Build filter object based on template type
     const userMobileNumber = session.user.mobileNumber;
-    const filter: any = {
-      isActive: true,
-      $or: [
+    let filter: any = { isActive: true };
+
+    if (templateType === 'public') {
+      // Show only public templates
+      filter.isPublic = true;
+      filter.customMobileNumber = null;
+    } else if (templateType === 'private') {
+      // Show only private templates for this user
+      filter.isPublic = false;
+      filter.customMobileNumber = userMobileNumber;
+    } else {
+      // Default: show both public and private templates for this user
+      filter.$or = [
         { isPublic: true, customMobileNumber: null }, // Public templates
         { isPublic: false, customMobileNumber: userMobileNumber } // Custom templates for this user
-      ]
-    };
+      ];
+    }
     
     if (category && category !== 'all') {
       filter.businessCategory = category;
@@ -41,11 +52,27 @@ export async function GET(request: NextRequest) {
     }
     
     if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
+      const searchFilter = {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { tags: { $in: [new RegExp(search, 'i')] } }
+        ]
+      };
+      
+      // Combine search filter with existing filter
+      if (filter.$or) {
+        // If we already have an $or condition, we need to use $and
+        filter = {
+          $and: [
+            { $or: filter.$or },
+            searchFilter
+          ]
+        };
+      } else {
+        // Otherwise, we can merge the conditions
+        filter = { ...filter, ...searchFilter };
+      }
     }
 
     // Get total count
@@ -56,7 +83,7 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .select('templateId name description businessCategory templateType tags previewImage metadata createdAt')
+      .select('templateId name description businessCategory templateType tags previewImage isPublic customMobileNumber metadata createdAt')
       .lean();
 
     // Add template URLs to each template
@@ -76,12 +103,12 @@ export async function GET(request: NextRequest) {
         hasNext: page < Math.ceil(total / limit),
         hasPrev: page > 1
       },
-      categories: await getAvailableCategories(userMobileNumber),
-      types: await getAvailableTypes(userMobileNumber)
+      categories: await getAvailableCategories(userMobileNumber, templateType),
+      types: await getAvailableTypes(userMobileNumber, templateType)
     });
 
   } catch (error) {
-    console.error('Public templates GET error:', error);
+    console.error('Templates GET error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch templates' },
       { status: 500 }
@@ -90,15 +117,23 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper function to get available categories from existing templates
-async function getAvailableCategories(userMobileNumber: string) {
+async function getAvailableCategories(userMobileNumber: string, templateType: string) {
   try {
-    const filter = {
-      isActive: true,
-      $or: [
-        { isPublic: true, customMobileNumber: null }, // Public templates
-        { isPublic: false, customMobileNumber: userMobileNumber } // Custom templates for this user
-      ]
-    };
+    let filter: any = { isActive: true };
+
+    if (templateType === 'public') {
+      filter.isPublic = true;
+      filter.customMobileNumber = null;
+    } else if (templateType === 'private') {
+      filter.isPublic = false;
+      filter.customMobileNumber = userMobileNumber;
+    } else {
+      filter.$or = [
+        { isPublic: true, customMobileNumber: null },
+        { isPublic: false, customMobileNumber: userMobileNumber }
+      ];
+    }
+
     const categories = await WebTemplate.distinct('businessCategory', filter);
     return categories.sort();
   } catch (error) {
@@ -108,15 +143,23 @@ async function getAvailableCategories(userMobileNumber: string) {
 }
 
 // Helper function to get available types from existing templates
-async function getAvailableTypes(userMobileNumber: string) {
+async function getAvailableTypes(userMobileNumber: string, templateType: string) {
   try {
-    const filter = {
-      isActive: true,
-      $or: [
-        { isPublic: true, customMobileNumber: null }, // Public templates
-        { isPublic: false, customMobileNumber: userMobileNumber } // Custom templates for this user
-      ]
-    };
+    let filter: any = { isActive: true };
+
+    if (templateType === 'public') {
+      filter.isPublic = true;
+      filter.customMobileNumber = null;
+    } else if (templateType === 'private') {
+      filter.isPublic = false;
+      filter.customMobileNumber = userMobileNumber;
+    } else {
+      filter.$or = [
+        { isPublic: true, customMobileNumber: null },
+        { isPublic: false, customMobileNumber: userMobileNumber }
+      ];
+    }
+
     const types = await WebTemplate.distinct('templateType', filter);
     return types.sort();
   } catch (error) {

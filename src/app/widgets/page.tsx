@@ -169,174 +169,186 @@ export default function WidgetsPage() {
       <div className="flex-1 ml-0 lg:ml-64 transition-all duration-300">
         <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-          {/* Header Section */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                Widget Library
-              </h1>
-              <p className="mt-2 text-lg text-gray-600">
-                Enhance your website with our collection of customizable widgets
-              </p>
-            </div>
-            <div className="mt-6 lg:mt-0 lg:ml-6">
-              <div className="flex items-center space-x-4">
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                  {filteredWidgets.length} Widget{filteredWidgets.length !== 1 ? 's' : ''} Available
+          {/* Hero Section - Mobile Optimized */}
+          <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-700 text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center mb-3 sm:mb-4">
+                    <svg className="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight">
+                      Widget Library
+                    </h1>
+                  </div>
+                  <p className="text-indigo-100 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6 max-w-2xl leading-relaxed">
+                    Enhance your website with our collection of customizable widgets
+                  </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filter Section */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search Bar */}
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search widgets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <div className="sm:w-64">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="block w-full px-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-              >
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name} ({category.count})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Widgets Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          {filteredWidgets.map((widget) => (
-            <div key={widget.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-indigo-200 transition-all duration-200 overflow-hidden group">
-              {/* Widget Header */}
-              <div className="p-6 pb-4">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-3xl">{widget.thumbnail}</div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900">{widget.name}</h3>
-                      {getStatusBadge(widget.status)}
+                
+                {/* Stats Cards - Mobile Responsive */}
+                <div className="mt-6 sm:mt-8 lg:mt-0 lg:ml-8">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
+                      <div className="text-xl sm:text-2xl font-bold">{filteredWidgets.length}</div>
+                      <div className="text-xs sm:text-sm text-indigo-100">Widgets</div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
+                      <div className="text-xl sm:text-2xl font-bold">{categories.length}</div>
+                      <div className="text-xs sm:text-sm text-indigo-100">Categories</div>
                     </div>
                   </div>
                 </div>
-                
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                  {widget.description}
-                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Search and Filter Section */}
+            <div className="mb-8">
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Search Bar */}
+                <div className="flex-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search widgets..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  />
+                </div>
 
-                {/* Features */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Features:</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {widget.features.map((feature, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700"
-                      >
-                        {feature}
-                      </span>
+                {/* Category Filter */}
+                <div className="sm:w-64">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="block w-full px-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  >
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name} ({category.count})
+                      </option>
                     ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Embed Code Section */}
-              <div className="px-6 pb-4">
-                <div className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-gray-900 flex items-center">
-                      <CodeBracketIcon className="w-4 h-4 mr-1" />
-                      Embed Code
-                    </h4>
-                    <button
-                      onClick={() => copyEmbedCode(widget)}
-                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
-                    >
-                      {copiedWidgetId === widget.id ? (
-                        <>
-                          <CheckIcon className="w-4 h-4 mr-2" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <DocumentDuplicateIcon className="w-4 h-4 mr-2" />
-                          Copy Embed Code
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="px-6 pb-6">
-                <div className="flex space-x-3">
-                  <Link 
-                    href={`/widget-preview/${userMobileNumber}/${widget.id}`}
-                    className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors group"
-                  >
-                    <EyeIcon className="w-4 h-4 mr-2" />
-                    Preview
-                    <ChevronRightIcon className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
-                  <Link 
-                    href={`/widgets/manage/${userMobileNumber}/${widget.id}`}
-                    className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                  >
-                    <CogIcon className="w-4 h-4 mr-2" />
-                    Manage
-                  </Link>
+                  </select>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Empty State */}
-        {filteredWidgets.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No widgets found</h3>
-            <p className="text-gray-600">
-              Try adjusting your search or filter criteria
-            </p>
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('all');
-              }}
-              className="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Clear filters
-            </button>
+            {/* Widgets Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {filteredWidgets.map((widget) => (
+                <div key={widget.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-indigo-200 transition-all duration-200 overflow-hidden group">
+                  {/* Widget Header */}
+                  <div className="p-6 pb-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="text-3xl">{widget.thumbnail}</div>
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">{widget.name}</h3>
+                          {getStatusBadge(widget.status)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                      {widget.description}
+                    </p>
+
+                    {/* Features */}
+                    <div className="mb-6">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Features:</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {widget.features.map((feature, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700"
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Embed Code Section */}
+                  <div className="px-6 pb-4">
+                    <div className="bg-gray-50 rounded-lg p-4 border">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                          <CodeBracketIcon className="w-4 h-4 mr-1" />
+                          Embed Code
+                        </h4>
+                        <button
+                          onClick={() => copyEmbedCode(widget)}
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                        >
+                          {copiedWidgetId === widget.id ? (
+                            <>
+                              <CheckIcon className="w-4 h-4 mr-2" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <DocumentDuplicateIcon className="w-4 h-4 mr-2" />
+                              Copy Embed Code
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="px-6 pb-6">
+                    <div className="flex space-x-3">
+                      <Link 
+                        href={`/widget-preview/${userMobileNumber}/${widget.id}`}
+                        className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors group"
+                      >
+                        <EyeIcon className="w-4 h-4 mr-2" />
+                        Preview
+                        <ChevronRightIcon className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                      </Link>
+                      <Link 
+                        href={`/widgets/manage/${userMobileNumber}/${widget.id}`}
+                        className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                      >
+                        <CogIcon className="w-4 h-4 mr-2" />
+                        Manage
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {filteredWidgets.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🔍</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No widgets found</h3>
+                <p className="text-gray-600">
+                  Try adjusting your search or filter criteria
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedCategory('all');
+                  }}
+                  className="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
           </div>
-                 )}
-       </div>
-     </div>
-       </div>
-     </div>
-   );
- } 
+        </div>
+      </div>
+    </div>
+  );
+} 

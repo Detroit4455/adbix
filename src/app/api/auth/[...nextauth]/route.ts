@@ -15,8 +15,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.mobileNumber || !credentials?.password) {
-            console.log('Missing credentials');
-            return null;
+            throw new Error('Please enter both mobile number and password');
           }
 
           console.log('Attempting to authenticate user:', credentials.mobileNumber);
@@ -25,14 +24,12 @@ export const authOptions: NextAuthOptions = {
           const user = await db.collection('users').findOne({ mobileNumber: credentials.mobileNumber });
 
           if (!user) {
-            console.log('No user found with mobile number:', credentials.mobileNumber);
-            return null;
+            throw new Error('No account found with this mobile number. Please check your mobile number or create a new account.');
           }
 
           const isValid = await bcrypt.compare(credentials.password, user.password);
           if (!isValid) {
-            console.log('Invalid password for user:', credentials.mobileNumber);
-            return null;
+            throw new Error('Incorrect password. Please check your password and try again.');
           }
 
           console.log('User authenticated successfully:', credentials.mobileNumber);
@@ -47,7 +44,7 @@ export const authOptions: NextAuthOptions = {
           };
         } catch (error) {
           console.error('Authentication error:', error);
-          return null;
+          throw error; // Re-throw the error so NextAuth can handle it properly
         }
       }
     })

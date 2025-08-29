@@ -204,7 +204,7 @@ export default function AdminSidebar({ onCollapse }: AdminSidebarProps) {
 
       <div className="absolute bottom-0 w-full p-4 border-t border-gray-800">
         <Link
-          href="/"
+          href="/dashboard"
           className="flex items-center text-gray-300 hover:text-white transition-colors duration-200"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${collapsed ? 'mx-auto' : 'mr-3'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">

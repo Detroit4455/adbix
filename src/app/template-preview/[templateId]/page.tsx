@@ -18,10 +18,14 @@ export default function TemplatePreviewPage() {
   useEffect(() => {
     const fetchTemplateInfo = async () => {
       try {
-        const response = await fetch('/api/templates');
+        const response = await fetch(`/api/templates/${templateId}`);
         const data = await response.json();
         
-        const template = data.templates.find((t: any) => t.templateId === templateId);
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch template');
+        }
+        
+        const template = data.template;
         
         if (template) {
           setTemplateName(template.name);
@@ -48,8 +52,8 @@ export default function TemplatePreviewPage() {
     }
   }, [templateId]);
 
-  const handleBack = () => {
-    router.back();
+  const handleClose = () => {
+    router.push('/templates');
   };
 
   const toggleViewMode = () => {
@@ -80,7 +84,7 @@ export default function TemplatePreviewPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Preview Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
-              onClick={handleBack}
+              onClick={handleClose}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               Go Back
@@ -93,17 +97,19 @@ export default function TemplatePreviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navbar */}
-      <Navbar />
+      {/* Top Navbar - Hidden on small screens for fullscreen experience */}
+      <div className="hidden lg:block">
+        <Navbar />
+      </div>
       
       {/* Template Preview Content */}
-      <div className="relative p-6" style={{ height: 'calc(100vh - 64px)' }}>
-        {/* Control Panel - Top Right */}
-        <div className="absolute top-6 right-6 z-50 flex flex-col items-end space-y-3">
+      <div className="relative lg:p-6" style={{ height: 'calc(100vh - 64px)', minHeight: '100vh' }}>
+        {/* Control Panel - Top Right - Only for large screens */}
+        <div className="hidden lg:flex absolute top-6 right-6 z-50 items-center space-x-3">
           {/* View Mode Toggle */}
           <button
             onClick={toggleViewMode}
-            className="px-4 py-2 bg-black bg-opacity-70 text-white rounded-lg hover:bg-opacity-80 transition-all duration-200 flex items-center space-x-2"
+            className="px-4 py-2 bg-black bg-opacity-30 text-white rounded-lg hover:bg-opacity-50 transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm"
             title={isMobileView ? "Switch to Desktop View" : "Switch to Mobile View"}
           >
             {isMobileView ? (
@@ -119,19 +125,12 @@ export default function TemplatePreviewPage() {
             )}
           </button>
 
-          {/* Template Name */}
-          {templateName && (
-            <div className="px-4 py-2 bg-black bg-opacity-70 text-white rounded-lg">
-              <span className="text-sm font-medium">{templateName}</span>
-            </div>
-          )}
-
           {/* Close Button */}
-          <button
-            onClick={handleBack}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center space-x-2"
-            title="Close Preview"
-          >
+                      <button
+              onClick={handleClose}
+              className="px-4 py-2 bg-black bg-opacity-30 text-white rounded-lg hover:bg-opacity-50 transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm"
+              title="Close Preview"
+            >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -139,13 +138,26 @@ export default function TemplatePreviewPage() {
           </button>
         </div>
 
+        {/* Mobile Close Button - Right Side - Only for small screens */}
+        <div className="lg:hidden absolute top-1/2 right-6 z-50 transform -translate-y-1/2">
+                      <button
+              onClick={handleClose}
+              className="px-4 py-3 bg-black bg-opacity-20 text-white rounded-full hover:bg-opacity-40 transition-all duration-200 backdrop-blur-sm shadow-lg"
+              title="Close Preview"
+            >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
         {/* Preview Container with Border Frame */}
         <div className="w-full h-full flex items-center justify-center">
           <div 
-            className={`transition-all duration-300 ${
+            className={`transition-all duration-300 border-4 border-blue-500 ${
               isMobileView 
                 ? 'w-[375px] h-[667px]' // More ideal mobile dimensions
-                : 'w-full h-full max-w-6xl bg-white rounded-lg shadow-2xl border-4 border-gray-200 overflow-hidden' // Desktop dimensions
+                : 'w-full h-full max-w-7xl max-h-[80vh] bg-white rounded-lg shadow-2xl overflow-hidden' // Desktop dimensions
             }`}
           >
             {/* Mobile Device Frame */}

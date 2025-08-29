@@ -32,7 +32,7 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
   const [messages, setMessages] = useState<ContactUsMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'settings' | 'messages'>('settings');
+  const [activeTab, setActiveTab] = useState<'basic' | 'templates' | 'fields' | 'colors' | 'embed' | 'messages'>('basic');
   const [newField, setNewField] = useState<Partial<FormField>>({
     type: 'text',
     label: '',
@@ -424,23 +424,63 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white rounded-2xl shadow-lg p-1 mb-8 max-w-md mx-auto">
-          <nav className="flex space-x-1">
+        <div className="bg-white rounded-2xl shadow-lg p-2 mb-8 max-w-5xl mx-auto">
+          <nav className="grid grid-cols-2 md:grid-cols-6 gap-2">
             <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex-1 py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
-                activeTab === 'settings'
+              onClick={() => setActiveTab('basic')}
+              className={`py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
+                activeTab === 'basic'
+                  ? 'bg-green-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              ⚙️ Basic Settings
+            </button>
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
+                activeTab === 'templates'
                   ? 'bg-blue-600 text-white shadow-lg transform scale-105'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              🎨 Widget Settings
+              🎨 Design Templates
+            </button>
+            <button
+              onClick={() => setActiveTab('fields')}
+              className={`py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
+                activeTab === 'fields'
+                  ? 'bg-orange-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              📝 Form Fields
+            </button>
+            <button
+              onClick={() => setActiveTab('colors')}
+              className={`py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
+                activeTab === 'colors'
+                  ? 'bg-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              🎨 Colors & Style
+            </button>
+            <button
+              onClick={() => setActiveTab('embed')}
+              className={`py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
+                activeTab === 'embed'
+                  ? 'bg-indigo-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              💻 Embed Code
             </button>
             <button
               onClick={() => setActiveTab('messages')}
-              className={`flex-1 py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
+              className={`py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 ${
                 activeTab === 'messages'
-                  ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                  ? 'bg-emerald-600 text-white shadow-lg transform scale-105'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -449,9 +489,9 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
           </nav>
         </div>
 
-        {activeTab === 'settings' && (
+        {/* Basic Settings Tab */}
+        {activeTab === 'basic' && (
           <div className="space-y-8">
-            {/* Basic Settings */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6">
                 <h3 className="text-xl font-semibold text-white flex items-center">
@@ -534,8 +574,12 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Template Selection */}
+        {/* Design Templates Tab */}
+        {activeTab === 'templates' && (
+          <div className="space-y-8">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
                 <div className="flex justify-between items-center">
@@ -663,8 +707,12 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Color Settings */}
+        {/* Colors & Style Tab */}
+        {activeTab === 'colors' && (
+          <div className="space-y-8">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-6">
                 <h3 className="text-xl font-semibold text-white flex items-center">
@@ -912,8 +960,12 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Form Fields Management */}
+        {/* Form Fields Tab */}
+        {activeTab === 'fields' && (
+          <div className="space-y-8">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6">
                 <h3 className="text-xl font-semibold text-white flex items-center">
@@ -1068,6 +1120,67 @@ export default function ContactUsManager({ userId }: ContactUsManagerProps) {
                   >
                     Add Field
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Embed Code Tab */}
+        {activeTab === 'embed' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <span className="mr-2">💻</span>
+                  Embed Code & Integration
+                </h3>
+                <p className="text-indigo-100 mt-1">Copy this code to embed the contact form in your website</p>
+              </div>
+              <div className="p-6">
+                <div className="bg-gray-50 p-4 rounded border">
+                  <code className="block text-xs overflow-x-auto text-gray-800">
+                    {`<iframe 
+  src="${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/widget-preview/${userId}/contact-us" 
+  width="400" 
+  height="500" 
+  frameborder="0"
+  style="border: none; border-radius: 12px;">
+</iframe>`}
+                  </code>
+                </div>
+                
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-800 mb-2">Different Sizes</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600">
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="font-medium">Compact Form</div>
+                      <div>width="350" height="450"</div>
+                      <div className="text-gray-500">Good for sidebars</div>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="font-medium">Standard Form</div>
+                      <div>width="400" height="500"</div>
+                      <div className="text-gray-500">Default size</div>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="font-medium">Large Form</div>
+                      <div>width="500" height="600"</div>
+                      <div className="text-gray-500">Full-featured contact</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                  <h4 className="font-medium text-blue-800 mb-2">Usage Tips</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Customize form fields, colors, and labels in the other tabs</li>
+                    <li>• Messages are stored securely and can be viewed in the Messages tab</li>
+                    <li>• Changes made in other tabs will appear immediately in embedded widgets</li>
+                    <li>• All form submissions include timestamp and IP address for security</li>
+                    <li>• No coding required - just copy and paste the iframe code</li>
+                    <li>• Works on any website: WordPress, Wix, Squarespace, or custom HTML</li>
+                  </ul>
                 </div>
               </div>
             </div>

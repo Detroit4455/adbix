@@ -200,10 +200,10 @@ export default function ContactUsWidget({
   const renderField = (field: FormField) => {
     const commonStyles = {
       width: '100%',
-      padding: '12px',
+      padding: '8px 10px',
       border: '1px solid #d1d5db',
-      borderRadius: '6px',
-      fontSize: '14px',
+      borderRadius: '4px',
+      fontSize: '13px',
       color: settings ? hexToRgba(settings.textColor, settings.textOpacity) : '#333333',
       backgroundColor: settings ? hexToRgba(settings.placeholderBgColor, settings.placeholderBgOpacity) : '#ffffff',
       boxSizing: 'border-box' as const
@@ -211,8 +211,8 @@ export default function ContactUsWidget({
 
     const labelStyles = {
       display: 'block',
-      marginBottom: '6px',
-      fontSize: '14px',
+      marginBottom: '4px',
+      fontSize: '13px',
       fontWeight: '500',
       color: settings?.textColor || '#333333'
     };
@@ -220,7 +220,7 @@ export default function ContactUsWidget({
     switch (field.type) {
       case 'textarea':
         return (
-          <div key={field.id} style={{ marginBottom: '16px' }}>
+          <div key={field.id} style={{ marginBottom: '12px' }}>
             <label style={labelStyles}>
               {field.label}
               {field.required && <span style={{ color: '#ef4444' }}>*</span>}
@@ -231,18 +231,18 @@ export default function ContactUsWidget({
               value={formData[field.name] || ''}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
               required={field.required}
-              rows={4}
+              rows={3}
               style={{
                 ...commonStyles,
                 resize: 'vertical' as const,
-                minHeight: '80px'
+                minHeight: '60px'
               }}
             />
           </div>
         );
       default:
         return (
-          <div key={field.id} style={{ marginBottom: '16px' }}>
+          <div key={field.id} style={{ marginBottom: '12px' }}>
             <label style={labelStyles}>
               {field.label}
               {field.required && <span style={{ color: '#ef4444' }}>*</span>}
@@ -264,7 +264,7 @@ export default function ContactUsWidget({
   const containerStyle: React.CSSProperties = {
     width,
     height,
-    padding: '24px',
+    padding: '16px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     boxSizing: 'border-box',
     overflow: 'auto',
@@ -289,25 +289,62 @@ export default function ContactUsWidget({
     height: '32px',
     border: '2px solid #e5e7eb',
     borderTop: '2px solid #374151',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite'
+    borderRadius: '50%'
   };
+
+  // Inject CSS directly into document head for proper styling
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const styleId = `contact-widget-styles-${userId}`;
+      
+      // Remove existing styles if any
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+
+      // Create new style element
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes contact-widget-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .contact-form input::placeholder,
+        .contact-form textarea::placeholder {
+          color: ${settings ? hexToRgba(settings.placeholderColor, settings.placeholderOpacity) : '#9ca3af'} !important;
+          opacity: 1 !important;
+        }
+        
+        .contact-form input:focus,
+        .contact-form textarea:focus {
+          outline: 2px solid ${settings ? hexToRgba(settings.buttonColor, 0.5) : '#3b82f6'} !important;
+          outline-offset: 2px !important;
+        }
+        
+        .contact-widget-spinner {
+          animation: contact-widget-spin 1s linear infinite !important;
+        }
+      `;
+      
+      document.head.appendChild(style);
+
+      // Cleanup function
+      return () => {
+        const styleToRemove = document.getElementById(styleId);
+        if (styleToRemove) {
+          styleToRemove.remove();
+        }
+      };
+    }
+  }, [settings, userId]);
 
   if (loading) {
     return (
       <div style={loadingStyle}>
-        <div style={spinnerStyle}></div>
-              <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .contact-form input::placeholder,
-        .contact-form textarea::placeholder {
-          color: ${settings ? hexToRgba(settings.placeholderColor, settings.placeholderOpacity) : '#9ca3af'};
-          opacity: 1;
-        }
-      `}</style>
+        <div style={{...spinnerStyle}} className="contact-widget-spinner"></div>
       </div>
     );
   }
@@ -326,23 +363,23 @@ export default function ContactUsWidget({
     return (
       <div style={containerStyle}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>
+          <div style={{ fontSize: '36px', marginBottom: '12px' }}>✅</div>
+          <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '600' }}>
             Thank You!
           </h3>
-          <p style={{ margin: '0', fontSize: '14px', color: '#6b7280' }}>
+          <p style={{ margin: '0', fontSize: '12px', color: '#6b7280' }}>
             Your message has been sent successfully. We'll get back to you soon!
           </p>
           <button
             onClick={() => setSubmitted(false)}
             style={{
-              marginTop: '16px',
-              padding: '8px 16px',
+              marginTop: '12px',
+              padding: '8px 14px',
               backgroundColor: settings.buttonColor,
               color: settings.buttonTextColor,
               border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
+              borderRadius: '4px',
+              fontSize: '12px',
               cursor: 'pointer'
             }}
           >
@@ -355,10 +392,10 @@ export default function ContactUsWidget({
 
   return (
     <div style={containerStyle}>
-      <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+      <div style={{ marginBottom: '16px', textAlign: 'center' }}>
         <h2 style={{ 
-          margin: '0 0 8px 0', 
-          fontSize: `${settings.titleFontSize || 20}px`, 
+          margin: '0 0 6px 0', 
+          fontSize: `${Math.min(settings.titleFontSize || 18, 18)}px`, 
           fontWeight: '600',
           color: hexToRgba(settings.textColor, settings.textOpacity)
         }}>
@@ -367,7 +404,7 @@ export default function ContactUsWidget({
         {settings.subtitle && (
           <p style={{ 
             margin: '0', 
-            fontSize: '14px', 
+            fontSize: '12px', 
             color: hexToRgba(settings.textColor, settings.textOpacity * 0.7)
           }}>
             {settings.subtitle}
@@ -382,13 +419,13 @@ export default function ContactUsWidget({
 
         {error && (
           <div style={{
-            marginBottom: '16px',
-            padding: '12px',
+            marginBottom: '12px',
+            padding: '8px 10px',
             backgroundColor: '#fef2f2',
             border: '1px solid #fecaca',
-            borderRadius: '6px',
+            borderRadius: '4px',
             color: '#dc2626',
-            fontSize: '14px'
+            fontSize: '12px'
           }}>
             {error}
           </div>
@@ -399,12 +436,12 @@ export default function ContactUsWidget({
           disabled={submitting}
           style={{
             width: '100%',
-            padding: '12px 24px',
+            padding: '10px 16px',
             backgroundColor: submitting ? '#9ca3af' : (settings ? hexToRgba(settings.buttonColor, settings.buttonOpacity) : '#3b82f6'),
             color: settings ? hexToRgba(settings.buttonTextColor, settings.buttonTextOpacity) : '#ffffff',
             border: 'none',
-            borderRadius: '6px',
-            fontSize: '14px',
+            borderRadius: '4px',
+            fontSize: '13px',
             fontWeight: '500',
             cursor: submitting ? 'not-allowed' : 'pointer',
             transition: 'background-color 0.2s ease'
@@ -414,12 +451,8 @@ export default function ContactUsWidget({
         </button>
       </form>
 
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+
     </div>
   );
 } 
+

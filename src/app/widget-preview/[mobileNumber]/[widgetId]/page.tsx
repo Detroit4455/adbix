@@ -31,26 +31,45 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
   useEffect(() => {
     // Create and inject CSS reset for clean widget display
     const style = document.createElement('style');
+    style.id = 'widget-preview-reset';
     style.textContent = `
-      * {
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
+      /* Widget preview reset - be more specific to avoid conflicts */
+      #widget-preview-root * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
+      
       html, body {
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
         height: 100% !important;
         width: 100% !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      }
+      
+      /* Ensure widget styles take precedence */
+      .contact-form,
+      .contact-form * {
+        box-sizing: border-box !important;
+      }
+      
+      /* Remove any default form styling that might interfere */
+      .contact-form input,
+      .contact-form textarea,
+      .contact-form button {
+        font-family: inherit !important;
+        font-size: inherit !important;
       }
     `;
     document.head.appendChild(style);
 
     // Cleanup function to remove the style when component unmounts
     return () => {
-      if (document.head.contains(style)) {
-        document.head.removeChild(style);
+      const existingStyle = document.getElementById('widget-preview-reset');
+      if (existingStyle) {
+        existingStyle.remove();
       }
     };
   }, []);
@@ -165,17 +184,20 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
   };
 
   return (
-    <div style={{
-      width: '100%',
-      height: '100vh',
-      margin: '0',
-      padding: '0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'transparent',
-      overflow: 'hidden'
-    }}>
+    <div 
+      id="widget-preview-root"
+      style={{
+        width: '100%',
+        height: '100vh',
+        margin: '0',
+        padding: '0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        overflow: 'hidden'
+      }}
+    >
       {renderWidgetContent()}
     </div>
   );

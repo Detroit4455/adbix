@@ -47,7 +47,7 @@ function isCloudFrontConfigured(): boolean {
 export default function WebOnS3Page() {
   const { data: session, status } = useSession();
   const [activeTab, setActiveTab] = useState('upload');
-  const [isTabsCollapsed, setIsTabsCollapsed] = useState(false);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [canUploadWebsite, setCanUploadWebsite] = useState(false);
   const [permissionLoading, setPermissionLoading] = useState(true);
@@ -68,15 +68,7 @@ export default function WebOnS3Page() {
     setPreviewRefreshKey(prev => prev + 1);
   };
 
-  useEffect(() => {
-    const handleResize = () => {
-      setIsTabsCollapsed(window.innerWidth < 768);
-    };
-    
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
 
   // Check upload website permission
   useEffect(() => {
@@ -259,11 +251,7 @@ export default function WebOnS3Page() {
               
               {/* Stats Cards - Mobile Responsive */}
               <div className="mt-6 sm:mt-8 lg:mt-0 lg:ml-8">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
-                    <div className="text-xl sm:text-2xl font-bold">∞</div>
-                    <div className="text-xs sm:text-sm text-indigo-100">Storage</div>
-                  </div>
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
                     <div className="text-xl sm:text-2xl font-bold">99.9%</div>
                     <div className="text-xs sm:text-sm text-indigo-100">Uptime</div>
@@ -275,63 +263,34 @@ export default function WebOnS3Page() {
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Enhanced Tab Navigation */}
+          {/* Enhanced Tab Navigation - Same layout for mobile and desktop */}
           <div className="bg-white shadow-lg rounded-2xl overflow-hidden mb-8">
-            {/* Mobile Tab Selector - Improved */}
-            {isTabsCollapsed ? (
-              <div className="p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
-                <div className="relative">
-                  <select
-                    value={activeTab}
-                    onChange={(e) => setActiveTab(e.target.value)}
-                    className="w-full p-3 sm:p-4 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base font-medium appearance-none cursor-pointer shadow-sm"
-                  >
-                    {tabs.map((tab) => (
-                      <option key={tab.id} value={tab.id}>
-                        {tab.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-                {/* Current tab description for mobile */}
-                <div className="mt-2 text-xs text-gray-500 text-center">
-                  {tabs.find(tab => tab.id === activeTab)?.description}
-                </div>
-              </div>
-            ) : (
-              <div className="border-b border-gray-200">
-                <nav className="flex flex-wrap">
-                  {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`group flex-1 min-w-0 px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-all duration-200 ${
-                          activeTab === tab.id
-                            ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2">
-                          <Icon className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${activeTab === tab.id ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'}`} />
-                          <span className="hidden sm:inline text-center leading-tight">{tab.label}</span>
-                          <span className="sm:hidden text-center leading-tight text-xs">{tab.label.split(' ')[0]}</span>
-                        </div>
-                        <div className={`mt-1 text-xs ${activeTab === tab.id ? 'text-indigo-500' : 'text-gray-400'} hidden lg:block text-center`}>
-                          {tab.description}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-            )}
+            <div className="border-b border-gray-200">
+              <nav className="flex flex-wrap">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`group flex-1 min-w-0 px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-all duration-200 ${
+                        activeTab === tab.id
+                          ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-1">
+                        <Icon className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${activeTab === tab.id ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'}`} />
+                        <span className="text-center leading-tight text-xs sm:text-sm">{tab.label}</span>
+                      </div>
+                      <div className={`mt-1 text-xs ${activeTab === tab.id ? 'text-indigo-500' : 'text-gray-400'} hidden lg:block text-center`}>
+                        {tab.description}
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
 
             {/* Tab Content with Enhanced Styling - Mobile Responsive */}
             <div className="p-4 sm:p-6 lg:p-8">
@@ -381,17 +340,13 @@ export default function WebOnS3Page() {
                           <div className="min-w-0 flex-1">
                             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Website Preview</h2>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-1 sm:space-y-0">
-                              <p className="text-xs sm:text-sm text-gray-600">Live preview of your website</p>
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
-                                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                                Direct from S3
-                              </span>
+                              <p className="text-xs sm:text-sm text-gray-600">Live preview of your website <span className="text-xs text-gray-500 font-normal">(CDN bypass)</span></p>
                             </div>
                           </div>
                         </div>
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                          {/* Mobile/Desktop Toggle */}
-                          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                          {/* Mobile/Desktop Toggle - Desktop only visible on larger screens */}
+                          <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
                             <button
                               onClick={() => setIsMobileView(false)}
                               className={`flex-1 sm:flex-none px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
@@ -430,17 +385,7 @@ export default function WebOnS3Page() {
                               <span className="sm:hidden">Sync</span>
                             </button>
 
-                            {/* Full Screen Button */}
-                            <a
-                              href="/web-dev"
-                              className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm"
-                            >
-                              <svg className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                              </svg>
-                              <span className="hidden sm:inline">Full Screen</span>
-                              <span className="sm:hidden">Full</span>
-                            </a>
+
                           </div>
                         </div>
                       </div>
@@ -457,10 +402,10 @@ export default function WebOnS3Page() {
                             <div className="flex-1 text-center">
                               <div className="text-xs text-gray-500 bg-white rounded px-2 sm:px-3 py-1 inline-block max-w-full truncate">
                                 <span className="hidden sm:inline">
-                                  {`${process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com'}/sites/${mobileNumber}/index.html`}
+                                  sites/{mobileNumber}/index.html
                                 </span>
                                 <span className="sm:hidden">
-                                  adbix.com/sites/{mobileNumber}
+                                  sites/{mobileNumber}
                                 </span>
                               </div>
                             </div>
@@ -533,18 +478,7 @@ export default function WebOnS3Page() {
                         </div>
                       </div>
                       
-                      {/* Info Panel */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-start">
-                          <svg className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                                                     <div className="text-sm text-blue-800">
-                             <p className="font-medium mb-1">Live Website Preview (Direct from S3)</p>
-                             <p>This preview loads your website directly from S3 storage, bypassing CDN cache to show the most recent changes. All CSS and JavaScript functionality is preserved. Use the toggle to switch between mobile and desktop views, or click "Full Screen" for a distraction-free preview experience.</p>
-                           </div>
-                        </div>
-                      </div>
+
                     </div>
                   ) : checkingFiles ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl">
@@ -637,13 +571,13 @@ export default function WebOnS3Page() {
                   </div>
 
                   <div className="grid gap-6 lg:gap-8 lg:grid-cols-2">
-                    {/* Application Proxy Access Only - Mobile Responsive */}
+                    {/* Your website url - Mobile Responsive */}
                     <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 sm:p-6">
                       <div className="flex items-center mb-3 sm:mb-4">
                         <div className="bg-green-500 rounded-lg p-2 mr-2 sm:mr-3 flex-shrink-0">
                           <GlobeAltIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                         </div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Application Proxy</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Your website url</h3>
                       </div>
                       <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
                         Access through our application with additional features like analytics and caching.
@@ -690,11 +624,19 @@ export default function WebOnS3Page() {
                     {/* QR Code Generator - Mobile Responsive */}
                     {mobileNumber && (
                       <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4 sm:p-6">
+                        <div className="flex items-center mb-3 sm:mb-4">
+                          <div className="bg-indigo-500 rounded-lg p-2 mr-2 sm:mr-3 flex-shrink-0">
+                            <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V6a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1zm12 0h2a1 1 0 001-1V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v1a1 1 0 001 1zM5 20h2a1 1 0 001-1v-1a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Visit to: {userProfile?.businessName || userProfile?.name || 'My Website'}</h3>
+                        </div>
                         <QRCodeGenerator 
                           url={`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/site/${mobileNumber}/index.html`}
                           logoUrl="/favicon_io/android-chrome-512x512.png"
                           businessName={userProfile?.businessName || userProfile?.name || 'My Website'}
-                          size={isTabsCollapsed ? 280 : 400}
+                          size={400}
                         />
                       </div>
                     )}
@@ -713,15 +655,7 @@ export default function WebOnS3Page() {
                         <ul className="text-amber-800 text-xs sm:text-sm space-y-2">
                           <li className="flex items-start">
                             <span className="text-amber-600 mr-2 flex-shrink-0">•</span>
-                            <span><strong>S3 Direct:</strong> Faster loading, direct from AWS infrastructure</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="text-amber-600 mr-2 flex-shrink-0">•</span>
-                            <span><strong>Application Proxy:</strong> Additional features like analytics and caching</span>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="text-amber-600 mr-2 flex-shrink-0">•</span>
-                            <span>All URLs are automatically updated when you upload new files</span>
+                            <span><strong>QR Code Usage:</strong> Download and print the QR code to display in your shop, business cards, flyers, or any marketing materials for easy customer access</span>
                           </li>
                         </ul>
                       </div>

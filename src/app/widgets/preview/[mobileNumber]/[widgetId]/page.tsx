@@ -1,4 +1,6 @@
 import ShopStatusWidget from '@/app/components/ShopStatusWidget';
+import ContactUsWidget from '@/app/components/ContactUsWidget';
+import ImageGalleryWidget from '@/app/components/ImageGalleryWidget';
 
 interface PreviewWidgetPageProps {
   params: {
@@ -15,6 +17,24 @@ export default function PreviewWidgetPage({ params }: PreviewWidgetPageProps) {
     case 'shop-status':
       return (
         <ShopStatusWidget 
+          showControls={false} 
+          userId={mobileNumber}
+          width="100%"
+          height="100vh"
+        />
+      );
+    case 'contact-us':
+      return (
+        <ContactUsWidget 
+          showControls={false} 
+          userId={mobileNumber}
+          width="100%"
+          height="100vh"
+        />
+      );
+    case 'image-gallery':
+      return (
+        <ImageGalleryWidget 
           showControls={false} 
           userId={mobileNumber}
           width="100%"
