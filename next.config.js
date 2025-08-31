@@ -112,7 +112,7 @@ const nextConfig = {
           }
         ]
       },
-      // Allow embedding widget previews in iframes (override stricter defaults)
+      // Allow embedding widget previews in iframes (override stricter defaults).
       {
         source: '/widget-preview/:path*',
         headers: [
