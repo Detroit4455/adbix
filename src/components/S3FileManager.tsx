@@ -643,22 +643,7 @@ Start writing your markdown content here.
                   <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                     {!file.isDirectory && (
                       <>
-                        {/* Preview Button */}
-                        <button
-                          onClick={() => {
-                            const fileUrl = `/site/${session?.user?.mobileNumber}/${file.path}`;
-                            window.open(fileUrl, '_blank');
-                          }}
-                          className="text-blue-600 hover:text-blue-900 px-2 py-1 text-xs border border-blue-200 rounded hover:bg-blue-50 w-full sm:w-auto text-center"
-                          title="Preview file in new tab"
-                        >
-                          <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span className="hidden sm:inline">Preview</span>
-                          <span className="sm:hidden">View</span>
-                        </button>
+
 
                         {/* Live Edit Button - Only for HTML files */}
                         {file.name.endsWith('.html') && (

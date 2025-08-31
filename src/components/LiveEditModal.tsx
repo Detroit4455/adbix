@@ -23,6 +23,22 @@ interface Image {
   key: string;
 }
 
+interface AssetInfo {
+  type: 'css' | 'js' | 'image' | 'font' | 'other';
+  path: string;
+  resolvedUrl: string;
+  status: 'loading' | 'loaded' | 'error' | 'pending';
+  error?: string;
+}
+
+interface DiscoveredAssets {
+  css: Set<string>;
+  js: Set<string>;
+  images: Set<string>;
+  fonts: Set<string>;
+  other: Set<string>;
+}
+
 export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber }: LiveEditModalProps) {
   const { data: session } = useSession();
   const [isLiveEditing, setIsLiveEditing] = useState(false);
@@ -33,8 +49,21 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   const [content, setContent] = useState<string>('');
   const [originalContent, setOriginalContent] = useState<string>('');
   const [editableContent, setEditableContent] = useState<string>('');
+  const [processedContent, setProcessedContent] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeKey, setIframeKey] = useState(0);
+  
+  // Enhanced Asset Management State
+  const [discoveredAssets, setDiscoveredAssets] = useState<DiscoveredAssets>({
+    css: new Set(),
+    js: new Set(),
+    images: new Set(),
+    fonts: new Set(),
+    other: new Set()
+  });
+  const [assetStatus, setAssetStatus] = useState<Record<string, AssetInfo>>({});
+  const [isProcessingAssets, setIsProcessingAssets] = useState(false);
+  const [assetLoadingProgress, setAssetLoadingProgress] = useState(0);
   
   // Image Manager state
   const [showImageManager, setShowImageManager] = useState(false);
@@ -43,6 +72,412 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   const [selectedImageForReplacement, setSelectedImageForReplacement] = useState<Image | null>(null);
   const [replacingImage, setReplacingImage] = useState<string | null>(null);
   const [imageTimestamps, setImageTimestamps] = useState<Record<string, number>>({});
+
+  // Enhanced S3 URL resolution - use direct S3 proxy to bypass CDN
+  const getS3BaseUrl = () => {
+    // Use direct S3 proxy route to bypass CDN for immediate access
+    // Use a more reliable way to get the origin
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://192.168.1.201:3000';
+    return `${origin}/direct/${mobileNumber}`;
+  };
+
+  const getCurrentDirectory = () => {
+    return filePath.substring(0, filePath.lastIndexOf('/')) || '';
+  };
+
+  // Enhanced relative path resolution for proxy route
+  const resolveRelativePath = (path: string, currentDir: string, baseUrl: string): string => {
+    // Skip external URLs, data URLs, and already resolved URLs
+    if (path.startsWith('http') || path.startsWith('//') || path.startsWith('data:') || path.includes('s3.ap-south-1.amazonaws.com')) {
+      return path;
+    }
+
+    // Handle absolute paths from site root
+    if (path.startsWith('/')) {
+      return `${baseUrl}${path}`;
+    }
+
+    // Handle current directory reference
+    if (path.startsWith('./')) {
+      const cleanPath = path.substring(2);
+      return currentDir ? `${baseUrl}/${currentDir}/${cleanPath}` : `${baseUrl}/${cleanPath}`;
+    }
+
+    // Handle parent directory navigation
+    if (path.startsWith('../')) {
+      const upLevels = (path.match(/\.\.\//g) || []).length;
+      const pathParts = currentDir.split('/').filter(Boolean);
+      const remainingParts = pathParts.slice(0, Math.max(0, pathParts.length - upLevels));
+      const cleanPath = path.replace(/^(\.\.\/)+/, '');
+      const resolvedDir = remainingParts.length > 0 ? remainingParts.join('/') : '';
+      return resolvedDir ? `${baseUrl}/${resolvedDir}/${cleanPath}` : `${baseUrl}/${cleanPath}`;
+    }
+
+    // Default relative path (same directory)
+    // For files in the root directory, ensure we don't add extra slashes
+    if (!currentDir) {
+      return `${baseUrl}/${path}`;
+    }
+    return `${baseUrl}/${currentDir}/${path}`;
+  };
+
+  // Revert processed URLs back to original relative paths for saving
+  const revertProcessedUrls = (html: string): string => {
+    const currentDir = getCurrentDirectory();
+    const s3BaseUrl = getS3BaseUrl();
+    
+    let reverted = html;
+    
+    console.log('Reverting processed URLs - s3BaseUrl:', s3BaseUrl);
+    
+    // Revert CSS link URLs back to relative paths
+    reverted = reverted.replace(
+      /<link([^>]*)href=["']([^"']*?)["']([^>]*?)>/gi,
+      (match, before, href, after) => {
+        // Check if this is a processed URL (contains our proxy route)
+        if (href.includes(s3BaseUrl)) {
+          console.log('Reverting CSS link:', href);
+          // Extract the original relative path
+          const relativePath = href.replace(s3BaseUrl, '').replace(/^\/+/, '');
+          
+          // If it was in a subdirectory, reconstruct the relative path
+          if (currentDir && relativePath.startsWith(currentDir + '/')) {
+            const fileName = relativePath.substring(currentDir.length + 1);
+            return `<link${before}href="${fileName}"${after}>`;
+          } else if (currentDir && relativePath === currentDir) {
+            // This was a directory reference, keep as is
+            return match;
+          } else {
+            // Root level file, just use the filename
+            const fileName = relativePath.split('/').pop() || relativePath;
+            return `<link${before}href="${fileName}"${after}>`;
+          }
+        }
+        return match;
+      }
+    );
+    
+    // Revert script URLs back to relative paths
+    reverted = reverted.replace(
+      /<script([^>]*)src=["']([^"']*?)["']([^>]*?)>/gi,
+      (match, before, src, after) => {
+        if (src.includes(s3BaseUrl)) {
+          const relativePath = src.replace(s3BaseUrl, '').replace(/^\/+/, '');
+          if (currentDir && relativePath.startsWith(currentDir + '/')) {
+            const fileName = relativePath.substring(currentDir.length + 1);
+            return `<script${before}src="${fileName}"${after}>`;
+          } else {
+            const fileName = relativePath.split('/').pop() || relativePath;
+            return `<script${before}src="${fileName}"${after}>`;
+          }
+        }
+        return match;
+      }
+    );
+    
+    // Revert image URLs back to relative paths
+    reverted = reverted.replace(
+      /<img([^>]*)src=["']([^"']*?)["']([^>]*?)>/gi,
+      (match, before, src, after) => {
+        if (src.includes(s3BaseUrl)) {
+          const relativePath = src.replace(s3BaseUrl, '').replace(/^\/+/, '');
+          if (currentDir && relativePath.startsWith(currentDir + '/')) {
+            const fileName = relativePath.substring(currentDir.length + 1);
+            return `<img${before}src="${fileName}"${after}>`;
+          } else {
+            const fileName = relativePath.split('/').pop() || relativePath;
+            return `<img${before}src="${fileName}"${after}>`;
+          }
+        }
+        return match;
+      }
+    );
+    
+    // Revert CSS url() functions back to relative paths
+    reverted = reverted.replace(
+      /url\(["']?([^"')]*?)["']?\)/gi,
+      (match, url) => {
+        if (url.includes(s3BaseUrl)) {
+          const relativePath = url.replace(s3BaseUrl, '').replace(/^\/+/, '');
+          if (currentDir && relativePath.startsWith(currentDir + '/')) {
+            const fileName = relativePath.substring(currentDir.length + 1);
+            return `url('${fileName}')`;
+          } else {
+            const fileName = relativePath.split('/').pop() || relativePath;
+            return `url('${fileName}')`;
+          }
+        }
+        return match;
+      }
+    );
+    
+    return reverted;
+  };
+
+  // Asset discovery function
+  const discoverAssets = (html: string): DiscoveredAssets => {
+    console.log('discoverAssets called with HTML length:', html.length);
+    
+    const assets: DiscoveredAssets = {
+      css: new Set(),
+      js: new Set(),
+      images: new Set(),
+      fonts: new Set(),
+      other: new Set()
+    };
+
+    // Discover CSS files
+    const cssMatches = html.match(/<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']*?)["'][^>]*>/gi) || 
+                      html.match(/<link[^>]*href=["']([^"']*\.css[^"']*)["'][^>]*rel=["']stylesheet["'][^>]*>/gi) || [];
+    
+    console.log('CSS matches found:', cssMatches);
+    
+    cssMatches.forEach(match => {
+      const href = match.match(/href=["']([^"']*)["']/)?.[1];
+      console.log('CSS href extracted:', href);
+      if (href && !href.startsWith('http') && !href.startsWith('data:')) {
+        assets.css.add(href);
+        console.log('Added CSS asset:', href);
+      }
+    });
+
+    // Discover JavaScript files
+    const jsMatches = html.match(/<script[^>]*src=["']([^"']*?)["'][^>]*>/gi) || [];
+    jsMatches.forEach(match => {
+      const src = match.match(/src=["']([^"']*)["']/)?.[1];
+      if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+        assets.js.add(src);
+      }
+    });
+
+    // Discover images
+    const imgMatches = html.match(/<img[^>]*src=["']([^"']*?)["'][^>]*>/gi) || [];
+    imgMatches.forEach(match => {
+      const src = match.match(/src=["']([^"']*)["']/)?.[1];
+      if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+        assets.images.add(src);
+      }
+    });
+
+    // Discover background images in inline styles
+    const bgMatches = html.match(/background(?:-image)?\s*:\s*url\(["']?([^"')]*?)["']?\)/gi) || [];
+    bgMatches.forEach(match => {
+      const url = match.match(/url\(["']?([^"')]*?)["']?\)/)?.[1];
+      if (url && !url.startsWith('http') && !url.startsWith('data:')) {
+        if (url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) {
+          assets.images.add(url);
+        } else {
+          assets.other.add(url);
+        }
+      }
+    });
+
+    // Discover fonts
+    const fontMatches = html.match(/<link[^>]*href=["']([^"']*?)["'][^>]*>/gi) || [];
+    fontMatches.forEach(match => {
+      const href = match.match(/href=["']([^"']*)["']/)?.[1];
+      if (href && (href.includes('font') || href.match(/\.(woff|woff2|ttf|otf|eot)$/i))) {
+        assets.fonts.add(href);
+      }
+    });
+
+    console.log('Final discovered assets:', {
+      css: Array.from(assets.css),
+      js: Array.from(assets.js),
+      images: Array.from(assets.images),
+      fonts: Array.from(assets.fonts),
+      other: Array.from(assets.other)
+    });
+
+    return assets;
+  };
+
+  // Asset validation function
+  const validateAsset = async (assetPath: string, resolvedUrl: string): Promise<{ valid: boolean; error?: string }> => {
+    try {
+      const response = await fetch(resolvedUrl, { 
+        method: 'HEAD',
+        cache: 'no-cache'
+      });
+      
+      if (response.ok) {
+        return { valid: true };
+      } else {
+        return { 
+          valid: false, 
+          error: `HTTP ${response.status}: ${response.statusText}` 
+        };
+      }
+    } catch (error) {
+      return { 
+        valid: false, 
+        error: error instanceof Error ? error.message : 'Network error' 
+      };
+    }
+  };
+
+  // Process assets for live editing
+  const processAssetsForLiveEdit = async (html: string): Promise<string> => {
+    setIsProcessingAssets(true);
+    setAssetLoadingProgress(0);
+
+    const currentDir = getCurrentDirectory();
+    const s3BaseUrl = getS3BaseUrl();
+    const siteBaseUrl = s3BaseUrl; // Already includes the full proxy path
+
+    // Discover all assets
+    const assets = discoverAssets(html);
+    setDiscoveredAssets(assets);
+
+    // Process and validate all assets
+    const allAssets = [...assets.css, ...assets.js, ...assets.images, ...assets.fonts, ...assets.other];
+    const assetStatusMap: Record<string, AssetInfo> = {};
+    
+    let processedCount = 0;
+    const totalAssets = allAssets.length;
+
+    for (const assetPath of allAssets) {
+      const resolvedUrl = resolveRelativePath(assetPath, currentDir, siteBaseUrl);
+      
+      // Determine asset type
+      let type: AssetInfo['type'] = 'other';
+      if (assets.css.has(assetPath)) type = 'css';
+      else if (assets.js.has(assetPath)) type = 'js';
+      else if (assets.images.has(assetPath)) type = 'image';
+      else if (assets.fonts.has(assetPath)) type = 'font';
+
+      assetStatusMap[assetPath] = {
+        type,
+        path: assetPath,
+        resolvedUrl,
+        status: 'loading'
+      };
+
+      // Validate asset
+      const validation = await validateAsset(assetPath, resolvedUrl);
+      assetStatusMap[assetPath].status = validation.valid ? 'loaded' : 'error';
+      if (!validation.valid) {
+        assetStatusMap[assetPath].error = validation.error;
+      }
+
+      processedCount++;
+      setAssetLoadingProgress((processedCount / totalAssets) * 100);
+    }
+
+    setAssetStatus(assetStatusMap);
+
+    // Process HTML with enhanced asset resolution
+    let processed = html;
+
+    // Add comprehensive base tag
+    if (processed.includes('<head>')) {
+      processed = processed.replace(
+        /<head([^>]*)>/i,
+        (match, attributes) => {
+          // For proxy route, the base should point to the current directory
+          const baseHref = currentDir ? `${siteBaseUrl}/${currentDir}/` : `${siteBaseUrl}/`;
+          console.log('Setting base href to:', baseHref);
+          return `<head${attributes}><base href="${baseHref}">`;
+        }
+      );
+    } else if (processed.includes('<html>')) {
+      processed = processed.replace(
+        /<html([^>]*)>/i,
+        (match, attributes) => {
+          // For proxy route, the base should point to the current directory
+          const baseHref = currentDir ? `${siteBaseUrl}/${currentDir}/` : `${siteBaseUrl}/`;
+          console.log('Setting base href to:', baseHref);
+          return `${match}<head><base href="${baseHref}"></head>`;
+        }
+      );
+    }
+
+    // Enhanced CSS link processing - directly replace with proxy URL
+    processed = processed.replace(
+      /<link([^>]*)href=["']([^"']*?)["']([^>]*?)>/gi,
+      (match, before, href, after) => {
+        if (href.startsWith('http') || href.startsWith('//') || href.startsWith('data:')) {
+          return match;
+        }
+        
+        // For CSS files, directly construct the proxy URL
+        let resolvedHref;
+        if (href.startsWith('/')) {
+          // Absolute path from site root
+          resolvedHref = `${siteBaseUrl}${href}`;
+        } else if (href.startsWith('./')) {
+          // Current directory reference
+          const cleanPath = href.substring(2);
+          resolvedHref = currentDir ? `${siteBaseUrl}/${currentDir}/${cleanPath}` : `${siteBaseUrl}/${cleanPath}`;
+        } else if (href.startsWith('../')) {
+          // Parent directory navigation
+          const upLevels = (href.match(/\.\.\//g) || []).length;
+          const pathParts = currentDir.split('/').filter(Boolean);
+          const remainingParts = pathParts.slice(0, Math.max(0, pathParts.length - upLevels));
+          const cleanPath = href.replace(/^(\.\.\/)+/, '');
+          const resolvedDir = remainingParts.length > 0 ? remainingParts.join('/') : '';
+          resolvedHref = resolvedDir ? `${siteBaseUrl}/${resolvedDir}/${cleanPath}` : `${siteBaseUrl}/${cleanPath}`;
+        } else {
+          // Default relative path (same directory)
+          resolvedHref = currentDir ? `${siteBaseUrl}/${currentDir}/${href}` : `${siteBaseUrl}/${href}`;
+        }
+        
+        console.log('CSS link resolution:', { original: href, resolved: resolvedHref, currentDir, siteBaseUrl });
+        return `<link${before}href="${resolvedHref}"${after}>`;
+      }
+    );
+
+    // Enhanced script processing
+    processed = processed.replace(
+      /<script([^>]*)src=["']([^"']*?)["']([^>]*?)>/gi,
+      (match, before, src, after) => {
+        if (src.startsWith('http') || src.startsWith('//') || src.startsWith('data:')) {
+          return match;
+        }
+        const resolvedSrc = resolveRelativePath(src, currentDir, siteBaseUrl);
+        return `<script${before}src="${resolvedSrc}"${after}>`;
+      }
+    );
+
+    // Enhanced image processing
+    processed = processed.replace(
+      /<img([^>]*)src=["']([^"']*?)["']([^>]*?)>/gi,
+      (match, before, src, after) => {
+        if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('#')) {
+          return match;
+        }
+        const resolvedSrc = resolveRelativePath(src, currentDir, siteBaseUrl);
+        return `<img${before}src="${resolvedSrc}"${after}>`;
+      }
+    );
+
+    // Process CSS url() functions in inline styles and style tags
+    processed = processed.replace(
+      /url\(["']?([^"')]*?)["']?\)/gi,
+      (match, url) => {
+        if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('#')) {
+          return match;
+        }
+        const resolvedUrl = resolveRelativePath(url, currentDir, siteBaseUrl);
+        return `url('${resolvedUrl}')`;
+      }
+    );
+
+    // Process video, audio, and other media elements
+    processed = processed.replace(
+      /<(video|audio|source|track)([^>]*)src=["']([^"']*?)["']([^>]*?)>/gi,
+      (match, tag, before, src, after) => {
+        if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('#')) {
+          return match;
+        }
+        const resolvedSrc = resolveRelativePath(src, currentDir, siteBaseUrl);
+        return `<${tag}${before}src="${resolvedSrc}"${after}>`;
+      }
+    );
+
+    setIsProcessingAssets(false);
+    return processed;
+  };
 
   // Fetch file content when modal opens
   useEffect(() => {
@@ -81,6 +516,11 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
       
       setContent(data.content);
       setOriginalContent(data.content);
+      
+      // Process assets immediately after loading content
+      const processed = await processAssetsForLiveEdit(data.content);
+      setProcessedContent(processed);
+      
     } catch (err) {
       console.error('Error fetching content:', err);
       setError(err instanceof Error ? err.message : 'Failed to load file');
@@ -234,14 +674,27 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   };
 
   // Start live editing
-  const handleStartLiveEdit = () => {
-    const editable = makeContentEditable(content);
-    setEditableContent(editable);
-    setIsLiveEditing(true);
-    setHasChanges(false);
-    
-    // Refresh iframe with editable content
-    setIframeKey(prev => prev + 1);
+  const handleStartLiveEdit = async () => {
+    try {
+      setIsProcessingAssets(true);
+      
+      // Process content with enhanced asset management
+      const processedContent = await processAssetsForLiveEdit(content);
+      const editable = makeContentEditable(processedContent);
+      
+      setEditableContent(editable);
+      setIsLiveEditing(true);
+      setHasChanges(false);
+      
+      // Refresh iframe with editable content
+      setIframeKey(prev => prev + 1);
+      
+    } catch (error) {
+      console.error('Error starting live edit:', error);
+      setError('Failed to start live editing: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsProcessingAssets(false);
+    }
   };
 
   // Stop live editing
@@ -277,16 +730,31 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
             contentToSave = contentToSave.replace(/\s*onfocus="[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*onblur="[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*spellcheck="[^"]*"/gi, '');
+            
+            // Remove base tags that were added for asset resolution
+            contentToSave = contentToSave.replace(/<base[^>]*>/gi, '');
+            
+            // Revert processed URLs back to original relative paths for saving
+            contentToSave = revertProcessedUrls(contentToSave);
+            
+            console.log('Content reverted for saving - CSS links should be relative paths');
           }
         } catch (err) {
           console.warn('Could not access iframe content, using stored content');
           contentToSave = editableContent;
+          
+          // Also revert the stored content if it contains processed URLs
+          contentToSave = revertProcessedUrls(contentToSave);
         }
       }
 
       if (!filePath) {
         throw new Error('File path is required');
       }
+
+      // Debug: Check what we're about to save
+      const cssLinksInSave = contentToSave.match(/<link[^>]*href=["']([^"']*\.css[^"']*)["'][^>]*>/gi);
+      console.log('CSS links in content to save:', cssLinksInSave);
 
       const response = await fetch('/api/s3-files', {
         method: 'POST',
@@ -314,8 +782,17 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
       setOriginalContent(contentToSave);
       setHasChanges(false);
       
+      // Stop live editing after successful save
+      setIsLiveEditing(false);
+      setEditableContent('');
+      
       // Refresh the iframe to show updated content
       setIframeKey(prev => prev + 1);
+      
+      // Refresh content to show the latest changes without leaving the editor
+      setTimeout(() => {
+        fetchContent();
+      }, 1500); // Wait 1.5 seconds to show success message before refreshing content
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save changes';
@@ -334,88 +811,114 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
     }
     setIsLiveEditing(false);
     setEditableContent('');
+    setProcessedContent('');
     setHasChanges(false);
     setError('');
     setSuccess('');
     setShowImageManager(false);
     setSelectedImageForReplacement(null);
+    setDiscoveredAssets({ css: new Set(), js: new Set(), images: new Set(), fonts: new Set(), other: new Set() });
+    setAssetStatus({});
     onClose();
   };
 
-  // Utility to rewrite relative URLs to S3 absolute URLs
-  function rewriteRelativeUrlsToS3(html: string, mobileNumber: string) {
-    if (!mobileNumber) return html;
-    const s3Base = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://dt-web-sites.s3.ap-south-1.amazonaws.com';
-    const siteBase = `${s3Base}/sites/${mobileNumber}`;
-
-    // <link href="...">
-    html = html.replace(/<link([^>]*?)href=["']([^"']+)["']([^>]*?)>/gi, (match, before, href, after) => {
-      if (/^(https?:)?\/\//.test(href) || href.startsWith('data:') || href.startsWith(siteBase)) return match;
-      let newHref = href;
-      if (href.startsWith('/')) {
-        newHref = `${siteBase}${href}`;
-      } else {
-        newHref = `${siteBase}/${href}`;
-      }
-      return `<link${before}href="${newHref}"${after}>`;
-    });
-
-    // <script src="...">
-    html = html.replace(/<script([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi, (match, before, src, after) => {
-      if (/^(https?:)?\/\//.test(src) || src.startsWith('data:') || src.startsWith(siteBase)) return match;
-      let newSrc = src;
-      if (src.startsWith('/')) {
-        newSrc = `${siteBase}${src}`;
-      } else {
-        newSrc = `${siteBase}/${src}`;
-      }
-      return `<script${before}src="${newSrc}"${after}>`;
-    });
-
-    // <img src="...">
-    html = html.replace(/<img([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi, (match, before, src, after) => {
-      if (/^(https?:)?\/\//.test(src) || src.startsWith('data:') || src.startsWith(siteBase)) return match;
-      let newSrc = src;
-      if (src.startsWith('/')) {
-        newSrc = `${siteBase}${src}`;
-      } else {
-        newSrc = `${siteBase}/${src}`;
-      }
-      return `<img${before}src="${newSrc}"${after}>`;
-    });
-
-    // CSS url(...) in <style> and inline styles
-    html = html.replace(/url\(["']?([^"')]+)["']?\)/gi, (match, url) => {
-      if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith(siteBase)) return match;
-      let newUrl = url;
-      if (url.startsWith('/')) {
-        newUrl = `${siteBase}${url}`;
-      } else {
-        newUrl = `${siteBase}/${url}`;
-      }
-      return `url('${newUrl}')`;
-    });
-
-    return html;
-  }
-
   // Get the content to display in iframe
   const getIframeContent = () => {
-    let html = isLiveEditing && editableContent ? editableContent : content;
-    html = rewriteRelativeUrlsToS3(html, mobileNumber);
-    return html;
-  };
-
-  // Create blob URL for iframe content
-  const createContentUrl = () => {
-    const contentToShow = getIframeContent();
-    const blob = new Blob([contentToShow], { type: 'text/html' });
-    return URL.createObjectURL(blob);
+    // Use processed content for better asset resolution
+    const contentToShow = isLiveEditing && editableContent ? editableContent : (processedContent || content);
+    
+    console.log('getIframeContent Debug:', {
+      isLiveEditing,
+      hasEditableContent: !!editableContent,
+      editableContentLength: editableContent?.length || 0,
+      contentLength: content?.length || 0,
+      processedContentLength: processedContent?.length || 0,
+      finalContentLength: contentToShow?.length || 0
+    });
+    
+    // Debug: Check for CSS links in the content
+    if (contentToShow) {
+      const cssMatches = contentToShow.match(/<link[^>]*href=["']([^"']*\.css[^"']*)["'][^>]*>/gi);
+      console.log('CSS links found in content:', cssMatches);
+      
+      // Also check for any link tags
+      const allLinks = contentToShow.match(/<link[^>]*>/gi);
+      console.log('All link tags found:', allLinks);
+    }
+    
+    return contentToShow;
   };
 
   const refreshContent = () => {
     fetchContent();
     setIframeKey(prev => prev + 1);
+    // Clear processed content to force reprocessing
+    setProcessedContent('');
+  };
+
+  // Asset Status Component
+  const AssetStatusPanel = () => {
+    const totalAssets = Object.keys(assetStatus).length;
+    const loadedAssets = Object.values(assetStatus).filter(asset => asset.status === 'loaded').length;
+    const errorAssets = Object.values(assetStatus).filter(asset => asset.status === 'error').length;
+
+    if (totalAssets === 0) return null;
+
+    return (
+      <div className="bg-gray-50 border-t border-gray-200 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-medium text-gray-700">Assets Status</h4>
+          <div className="text-xs text-gray-500">
+            {loadedAssets}/{totalAssets} loaded
+            {errorAssets > 0 && (
+              <span className="text-red-600 ml-2">({errorAssets} failed)</span>
+            )}
+          </div>
+        </div>
+        
+        {isProcessingAssets && (
+          <div className="mb-2">
+            <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+              <span>Processing assets...</span>
+              <span>{Math.round(assetLoadingProgress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1">
+              <div 
+                className="bg-blue-500 h-1 rounded-full transition-all duration-300" 
+                style={{ width: `${assetLoadingProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1 max-h-32 overflow-y-auto">
+          {Object.entries(assetStatus).map(([path, asset]) => (
+            <div key={path} className="flex items-center justify-between text-xs">
+              <span className="truncate flex-1 mr-2" title={path}>
+                {path.split('/').pop()}
+              </span>
+              <div className="flex items-center space-x-1">
+                <span className={`px-1 py-0.5 rounded text-xs ${
+                  asset.type === 'css' ? 'bg-blue-100 text-blue-700' :
+                  asset.type === 'js' ? 'bg-yellow-100 text-yellow-700' :
+                  asset.type === 'image' ? 'bg-green-100 text-green-700' :
+                  asset.type === 'font' ? 'bg-purple-100 text-purple-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {asset.type}
+                </span>
+                <span className={`w-2 h-2 rounded-full ${
+                  asset.status === 'loaded' ? 'bg-green-500' :
+                  asset.status === 'error' ? 'bg-red-500' :
+                  asset.status === 'loading' ? 'bg-yellow-500 animate-pulse' :
+                  'bg-gray-300'
+                }`} title={asset.error || asset.status}></span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   if (!isOpen) return null;
@@ -423,7 +926,7 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <GlobalToast />
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-full max-h-[90vh] flex flex-col relative">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-7xl h-full max-h-[90vh] flex flex-col relative">
         {/* Image Manager Panel (left overlay) */}
         <ImageManagerPanel
           isOpen={showImageManager}
@@ -435,15 +938,24 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
           reloadUserImages={loadImages}
           onImageReplaced={refreshContent}
         />
+        
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <h2 className="text-xl font-semibold text-gray-800">Live Edit Webpage Content</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Enhanced Live Editor</h2>
             {isLiveEditing && (
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs text-green-600 font-medium px-2 py-1 bg-green-50 rounded-full">
                   Live Editing Active
+                </span>
+              </div>
+            )}
+            {isProcessingAssets && (
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-blue-600 font-medium px-2 py-1 bg-blue-50 rounded-full">
+                  Processing Assets
                 </span>
               </div>
             )}
@@ -479,7 +991,7 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
                 ref={iframeRef}
                 srcDoc={getIframeContent()}
                 className="w-full h-full border-0"
-                title="Live Edit Content"
+                title="Enhanced Live Edit Content"
                 onLoad={() => {
                   console.log('Iframe content loaded');
                   if (isLiveEditing && iframeRef.current) {
@@ -495,6 +1007,10 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
                     }
                   }
                 }}
+                onError={() => {
+                  console.error('Iframe failed to load');
+                  setError('Failed to load content in iframe');
+                }}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -506,6 +1022,9 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
             )}
           </div>
         </div>
+
+        {/* Asset Status Panel */}
+        <AssetStatusPanel />
 
         {/* Footer with Controls */}
         <div className="p-4 border-t border-gray-200 bg-white">
@@ -535,7 +1054,7 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <span className="text-sm text-blue-700">
-                  <strong>Live Editing:</strong> Hover over text elements in the webpage above to see them highlight, then click to edit directly. Your changes are automatically tracked.
+                  <strong>Enhanced Live Editing:</strong> All assets are validated and resolved. Hover over text elements to edit directly with full asset support.
                 </span>
               </div>
             </div>
@@ -551,12 +1070,26 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
               {!isLiveEditing ? (
                 <button
                   onClick={handleStartLiveEdit}
-                  className="flex items-center px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg"
+                  disabled={isProcessingAssets}
+                  className={`flex items-center px-6 py-2 rounded-lg transition-all duration-200 shadow-lg ${
+                    isProcessingAssets
+                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
+                  }`}
                 >
-                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-1.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Live Edit
+                  {isProcessingAssets ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-1.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Live Edit
+                    </>
+                  )}
                 </button>
               ) : (
                 <button
@@ -612,4 +1145,4 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
     </div>,
     document.body
   );
-} 
+}

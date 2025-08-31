@@ -10,6 +10,7 @@ import MyImages from '@/components/MyImages';
 import Navbar from '@/components/Navbar';
 import LeftNavbar from '@/components/LeftNavbar';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
+
 import Link from 'next/link';
 import { 
   CloudArrowUpIcon, 
@@ -21,7 +22,8 @@ import {
   GlobeAltIcon,
   ArrowTopRightOnSquareIcon,
   DevicePhoneMobileIcon,
-  ComputerDesktopIcon
+  ComputerDesktopIcon,
+
 } from '@heroicons/react/24/outline';
 
 // URL utility functions for CloudFront support
@@ -190,6 +192,7 @@ export default function WebOnS3Page() {
       icon: DocumentDuplicateIcon,
       description: 'Preview and edit your website'
     },
+
     { 
       id: 'files', 
       label: 'File Manager', 
@@ -530,6 +533,8 @@ export default function WebOnS3Page() {
                   )}
                 </div>
               )}
+
+
 
               {/* Files Tab */}
               {activeTab === 'files' && (

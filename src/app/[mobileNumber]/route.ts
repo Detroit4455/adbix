@@ -37,7 +37,8 @@ export async function GET(
   context: { params: { mobileNumber: string } }
 ) {
   try {
-    const { mobileNumber } = context.params;
+    const paramValues = await Promise.resolve(context.params);
+    const { mobileNumber } = paramValues;
     const url = new URL(request.url);
     let filePath = url.pathname.substring(`/${mobileNumber}`.length) || '/index.html';
     

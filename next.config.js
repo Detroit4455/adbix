@@ -50,11 +50,11 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://api.razorpay.com https://cdnjs.cloudflare.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://api.razorpay.com https://cdnjs.cloudflare.com https://cdn.tailwindcss.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://cdnjs.cloudflare.com",
+              "connect-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
               // Allow embedding our S3-hosted sites (and CloudFront if configured) in iframes
               `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL}`.trim(),
               // Allow Monaco Editor web workers
@@ -90,6 +90,28 @@ const nextConfig = {
           }
         ]
       },
+      // Permissive CSP for direct S3 proxy (bypass CDN for live editing)
+      {
+        source: '/direct/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              // Allow broad sources for direct S3 access (bypass CDN)
+              "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:",
+              "script-src * 'unsafe-inline' 'unsafe-eval' data: blob:",
+              "style-src * 'unsafe-inline' data:",
+              "img-src * data: blob:",
+              "font-src * data:",
+              "media-src * data: blob:",
+              "connect-src * data: blob:",
+              "frame-src * data: blob:",
+              "object-src * data: blob:",
+              "base-uri *"
+            ].join('; ')
+          }
+        ]
+      },
       // Allow embedding widget previews in iframes (override stricter defaults)
       {
         source: '/widget-preview/:path*',
@@ -103,10 +125,10 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://cdn.jsdelivr.net",
+              "connect-src 'self' https://cdn.jsdelivr.net https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
               // Permit being embedded by our domain and common S3/CF domains
               `frame-ancestors 'self' ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL} https://*.amazonaws.com https://*.cloudfront.net http://localhost:3000`.trim(),
               "object-src 'none'",
@@ -128,10 +150,10 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://cdn.jsdelivr.net",
+              "connect-src 'self' https://cdn.jsdelivr.net https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
               `frame-ancestors 'self' ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL} https://*.amazonaws.com https://*.cloudfront.net http://localhost:3000`.trim(),
               "object-src 'none'",
               "base-uri 'self'",
