@@ -24,10 +24,15 @@ export default function ContactPage() {
         </Link>
       </div>
       {/* Hero */}
-      <div className="pt-16 pb-12 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-16 pb-12 bg-gradient-to-br from-cyan-900 to-black relative overflow-hidden">
+        {/* Decorative shapes */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+          <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">Contact Us</h1>
-          <p className="mt-4 text-indigo-100 max-w-2xl">
+          <p className="mt-4 text-cyan-100 max-w-2xl">
             We would love to hear about your project. Reach out and we’ll get back to you shortly.
           </p>
         </div>

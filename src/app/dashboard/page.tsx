@@ -133,8 +133,13 @@ export default function DashboardPage() {
         <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="bg-gradient-to-br from-cyan-900 to-black text-white relative overflow-hidden">
+          {/* Decorative shapes */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+            <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
+          </div>
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
                 <div className="flex items-center mb-4">
@@ -143,10 +148,10 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h1 className="text-3xl md:text-4xl font-bold">Welcome back, {userName}!</h1>
-                    <p className="text-indigo-100 mt-1">Ready to build something amazing today?</p>
+                    <p className="text-cyan-100 mt-1">Ready to build something amazing today?</p>
                   </div>
                 </div>
-                <div className="flex items-center text-indigo-100 text-sm">
+                <div className="flex items-center text-cyan-100 text-sm">
                   <ClockIcon className="h-4 w-4 mr-2" />
                   {currentTime.toLocaleString()}
                 </div>
@@ -160,9 +165,9 @@ export default function DashboardPage() {
                       <UserCircleIcon className="h-8 w-8" />
                     </div>
                     <h3 className="font-semibold text-lg">{userName}</h3>
-                    <p className="text-indigo-100 text-sm capitalize">{userRole} Account</p>
+                    <p className="text-cyan-100 text-sm capitalize">{userRole} Account</p>
                     <div className="mt-3 pt-3 border-t border-white/20">
-                      <div className="text-xs text-indigo-100">Mobile: {session.user?.mobileNumber}</div>
+                      <div className="text-xs text-cyan-100">Mobile: {session.user?.mobileNumber}</div>
                     </div>
                   </div>
                 </div>

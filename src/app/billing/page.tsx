@@ -636,9 +636,14 @@ export default function BillingPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+      <div className="min-h-screen bg-gradient-to-br from-cyan-900 to-black flex items-center justify-center relative overflow-hidden">
+        {/* Decorative shapes */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+          <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
+        </div>
+        <div className="relative z-10 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading billing information...</p>
         </div>
       </div>
@@ -649,8 +654,13 @@ export default function BillingPage() {
     const isRazorpayConfigError = error.includes('Payment service not configured') || error.includes('Razorpay');
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 flex items-center justify-center">
-        <div className="text-center max-w-md mx-4">
+      <div className="min-h-screen bg-gradient-to-br from-cyan-900 to-black flex items-center justify-center relative overflow-hidden">
+        {/* Decorative shapes */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+          <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
+        </div>
+        <div className="relative z-10 text-center max-w-md mx-4">
           <div className="bg-white rounded-lg p-6 shadow-lg">
             <div className="text-red-600 text-4xl mb-4">⚠️</div>
             <h2 className="text-xl font-semibold text-gray-800 mb-3">
@@ -677,7 +687,7 @@ export default function BillingPage() {
             
             <button 
               onClick={() => window.location.reload()} 
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+              className="bg-cyan-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-cyan-700 transition-colors"
             >
               Retry
             </button>
@@ -688,8 +698,13 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-900 to-black relative overflow-hidden">
+      {/* Decorative shapes */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+        <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
+      </div>
+      <div className="relative z-10 container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
@@ -706,7 +721,7 @@ export default function BillingPage() {
               <div className="flex-1"></div>
             </div>
             <h1 className="text-4xl font-bold text-white mb-2">Billing & Subscriptions</h1>
-            <p className="text-purple-100">Manage your plan, add-ons, and UPI Autopay subscriptions.</p>
+            <p className="text-cyan-100">Manage your plan, add-ons, and UPI Autopay subscriptions.</p>
           </div>
 
           {/* Customer Information Form Modal */}
@@ -760,7 +775,7 @@ export default function BillingPage() {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+                      className="flex-1 bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors"
                     >
                       Continue
                     </button>
@@ -964,11 +979,11 @@ export default function BillingPage() {
                         <div className="grid md:grid-cols-3 gap-6">
                           {plans.map((plan) => (
                             <div key={plan.id} className={`relative bg-white border-2 rounded-2xl p-6 transition-all ${
-                              selectedPlan === plan.planId ? 'border-purple-600 shadow-lg' : 'border-gray-200 hover:border-gray-300'
+                              selectedPlan === plan.planId ? 'border-cyan-600 shadow-lg' : 'border-gray-200 hover:border-gray-300'
                             }`}>
                               {plan.isRecommended && (
                                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                                  <span className="bg-purple-600 text-white px-4 py-1 rounded-full text-xs font-medium">
+                                  <span className="bg-cyan-600 text-white px-4 py-1 rounded-full text-xs font-medium">
                                     Recommended
                                   </span>
                                 </div>
@@ -992,11 +1007,11 @@ export default function BillingPage() {
                                   onClick={() => setSelectedPlan(plan.planId)}
                                   className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
                                     selectedPlan === plan.planId
-                                      ? 'bg-purple-600 text-white'
+                                      ? 'bg-cyan-600 text-white'
                                       : plan.buttonColor === 'gradient'
                                         ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700'
                                         : plan.buttonColor === 'purple'
-                                          ? 'bg-purple-600 text-white hover:bg-purple-700'
+                                          ? 'bg-cyan-600 text-white hover:bg-cyan-700'
                                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                   }`}
                                 >
@@ -1029,7 +1044,7 @@ export default function BillingPage() {
                                   onChange={() => toggleAddOn(addon.addonId)}
                                   className="sr-only peer"
                                 />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                               </label>
                             </div>
                           ))}
@@ -1081,7 +1096,7 @@ export default function BillingPage() {
                         <p className="text-gray-500 mb-6">Start by selecting a plan and creating your first subscription.</p>
                         <button
                           onClick={() => setActiveTab('billing-info')}
-                          className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                          className="bg-cyan-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-cyan-700 transition-colors"
                         >
                           Browse Plans
                         </button>
@@ -1191,7 +1206,7 @@ export default function BillingPage() {
                                               }
                                             }}
                                             disabled={processingPayment}
-                                            className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+                                            className="px-3 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 disabled:opacity-50"
                                           >
                                             {processingPayment ? 'Checking...' : 'Check Status'}
                                           </button>
@@ -1420,7 +1435,7 @@ export default function BillingPage() {
                   <div>
                     <div className="flex justify-between items-center mb-6">
                       <h2 className="text-2xl font-semibold text-gray-800">Billing History</h2>
-                      <button className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2">
+                      <button className="bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-700 transition-colors flex items-center space-x-2">
                         <span>📊</span>
                         <span>Download Report</span>
                       </button>
@@ -1646,7 +1661,7 @@ export default function BillingPage() {
                       <button
                         onClick={handleCreateSubscription}
                         disabled={processingPayment}
-                        className="w-full bg-purple-600 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-purple-700 transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-cyan-600 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-cyan-700 transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {processingPayment ? (
                           <div className="flex items-center justify-center">

@@ -27,12 +27,17 @@ export default function HowToPage() {
         <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-gradient-to-br from-cyan-900 to-black text-white relative overflow-hidden">
+          {/* Decorative shapes */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+            <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
+          </div>
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div className="text-center">
               <SparklesIcon className="h-16 w-16 mx-auto mb-6 opacity-90" />
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Get Your Website Online</h1>
-              <p className="text-xl text-indigo-100 max-w-3xl mx-auto">
+              <p className="text-xl text-cyan-100 max-w-3xl mx-auto">
                 Choose the perfect way to create your professional website. Start with templates or get custom development.
               </p>
             </div>

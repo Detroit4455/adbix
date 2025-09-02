@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page with Widgets - Live Edit Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        
+        .widget-section {
+            margin: 40px 0;
+            padding: 20px;
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            background: #f7fafc;
+        }
+        
+        .widget-section h2 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .widget-section p {
+            color: #718096;
+            margin-bottom: 20px;
+        }
+        
+        .widget-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .content-section {
+            margin: 30px 0;
+        }
+        
+        .text-content {
+            background: #edf2f7;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .highlight {
+            background: #fed7e2;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .note {
+            background: #bee3f8;
+            border: 1px solid #90cdf4;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Widget Live Edit Test Page</h1>
+        
+        <div class="content-section">
+            <h2>Welcome to Our Business</h2>
+            <div class="text-content">
+                <p>This is a <span class="highlight">test page</span> that demonstrates how the live editor handles iframe widgets. When you edit this page in the live editor, the widgets below will be replaced with dummy placeholders to prevent constant reloading.</p>
+                
+                <p>You can edit this text content normally, and the widgets will remain stable during editing. When you save, the original widget URLs will be restored automatically.</p>
+            </div>
+        </div>
+
+        <div class="widget-section">
+            <h2>🏪 Shop Status Widget</h2>
+            <p>This widget shows whether our shop is currently open or closed:</p>
+            <div class="widget-container">
+                <iframe 
+                    src="http://localhost:3000/widget-preview/1234567890/shop-status" 
+                    width="250" 
+                    height="150" 
+                    frameborder="0"
+                    style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>About Our Services</h2>
+            <div class="text-content">
+                <p>We provide excellent services to our customers. Our team is dedicated to ensuring customer satisfaction and delivering high-quality results.</p>
+                
+                <p>Feel free to browse our image gallery below to see some of our work, or contact us using the contact form.</p>
+            </div>
+        </div>
+
+        <div class="widget-section">
+            <h2>🖼️ Image Gallery Widget</h2>
+            <p>Browse through our collection of images:</p>
+            <div class="widget-container">
+                <iframe 
+                    src="http://localhost:3000/widget-preview/1234567890/image-gallery" 
+                    width="600" 
+                    height="400" 
+                    frameborder="0"
+                    style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Get in Touch</h2>
+            <div class="text-content">
+                <p>We'd love to hear from you! Use the contact form below to send us a message, and we'll get back to you as soon as possible.</p>
+            </div>
+        </div>
+
+        <div class="widget-section">
+            <h2>📧 Contact Us Widget</h2>
+            <p>Send us a message directly:</p>
+            <div class="widget-container">
+                <iframe 
+                    src="http://localhost:3000/widget-preview/1234567890/contact-us" 
+                    width="400" 
+                    height="500" 
+                    frameborder="0"
+                    style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>🔧 Live Editor Testing Note:</strong><br>
+            When this page is opened in the Enhanced Live Editor:
+            <ul>
+                <li>✅ All widget iframes will be replaced with attractive placeholder content</li>
+                <li>✅ The placeholders clearly show they are not editable (🚫 This area is not editable)</li>
+                <li>✅ Widget placeholder areas are completely protected from accidental editing</li>
+                <li>✅ You can edit text content without widgets constantly reloading</li>
+                <li>✅ When you save, the original widget URLs will be automatically restored</li>
+                <li>✅ <strong>IMPORTANT:</strong> Placeholder text is completely removed - only clean iframe tags are saved</li>
+                <li>✅ The live site will continue to work normally with functioning widgets</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>Final Thoughts</h2>
+            <div class="text-content">
+                <p>This page demonstrates the enhanced live editing capabilities that handle iframe widgets gracefully. The solution prevents widget reloading issues while maintaining full functionality on the live site.</p>
+                
+                <p>Thank you for testing our <span class="highlight">enhanced live editor</span>!</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -122,8 +122,13 @@ export default function ToolsPage() {
         <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* Hero Section - Mobile Optimized */}
-        <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-700 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+        <div className="bg-gradient-to-br from-cyan-900 to-black text-white relative overflow-hidden">
+          {/* Decorative shapes */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+            <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
+          </div>
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
                 <div className="flex items-center mb-3 sm:mb-4">
@@ -134,7 +139,7 @@ export default function ToolsPage() {
                     Tools
                   </h1>
                 </div>
-                <p className="text-indigo-100 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6 max-w-2xl leading-relaxed">
+                <p className="text-cyan-100 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6 max-w-2xl leading-relaxed">
                   Powerful tools to help you build, manage, and optimize your websites
                 </p>
               </div>
@@ -144,11 +149,11 @@ export default function ToolsPage() {
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
                     <div className="text-xl sm:text-2xl font-bold">{tools.length}</div>
-                    <div className="text-xs sm:text-sm text-indigo-100">Tools</div>
+                    <div className="text-xs sm:text-sm text-cyan-100">Tools</div>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 text-center">
                     <div className="text-xl sm:text-2xl font-bold">1</div>
-                    <div className="text-xs sm:text-sm text-indigo-100">Available</div>
+                    <div className="text-xs sm:text-sm text-cyan-100">Available</div>
                   </div>
                 </div>
               </div>

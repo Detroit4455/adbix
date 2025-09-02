@@ -8,8 +8,8 @@ import { signIn, useSession } from 'next-auth/react';
 // Loading component for Suspense fallback
 function LoginPageSkeleton() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-cyan-900 to-black">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-400 border-t-transparent"></div>
     </div>
   );
 }
@@ -113,10 +113,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none opacity-40">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-indigo-200 blur-3xl"></div>
-        <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-purple-200 blur-3xl"></div>
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-cyan-900 to-black py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl animate-pulse"></div>
+        <div className="absolute -right-40 -bottom-40 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl animate-pulse"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -126,10 +126,10 @@ function LoginForm() {
               <img src="/favicon_io/android-chrome-192x192.png" alt="adbix" className="h-full w-full object-contain" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-black">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Create one
+              <Link href="/register" className="font-medium text-blue-600 hover:text-blue-700 hover:scale-105 transition-all duration-200 inline-block">
+                Create one  
               </Link>
             </p>
           </div>
@@ -220,7 +220,7 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="group relative w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium rounded-lg text-cyan-900 bg-white hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
               >
                 {loading && (
                   <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -234,7 +234,7 @@ function LoginForm() {
           </form>
         </div>
 
-        <p className="mt-4 text-center text-xs text-gray-500">By signing in, you agree to our terms and privacy policy.</p>
+        <p className="mt-4 text-center text-xs text-gray-400">By signing in, you agree to our terms and privacy policy.</p>
       </div>
     </div>
   );

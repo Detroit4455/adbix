@@ -65,6 +65,9 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   const [isProcessingAssets, setIsProcessingAssets] = useState(false);
   const [assetLoadingProgress, setAssetLoadingProgress] = useState(0);
   
+  // Widget URL replacement state
+  const [originalWidgetUrls, setOriginalWidgetUrls] = useState<Map<string, string>>(new Map());
+  
   // Image Manager state
   const [showImageManager, setShowImageManager] = useState(false);
   const [images, setImages] = useState<Image[]>([]);
@@ -79,6 +82,190 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
     // Use a more reliable way to get the origin
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://192.168.1.201:3000';
     return `${origin}/direct/${mobileNumber}`;
+  };
+
+  // Widget URL detection and replacement functions
+  const createDummyWidgetContent = (widgetType: string, width: string, height: string): string => {
+    const dummyStyles = `
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+      border: 2px dashed #0284c7; 
+      border-radius: 8px; 
+      color: #0369a1; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      font-size: 14px; 
+      text-align: center; 
+      position: relative;
+      width: ${width}; 
+      height: ${height};
+      cursor: not-allowed;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    `;
+
+    const getWidgetIcon = (type: string) => {
+      switch (type) {
+        case 'shop-status':
+          return '🏪';
+        case 'image-gallery':
+          return '🖼️';
+        case 'contact-us':
+          return '📧';
+        default:
+          return '🔧';
+      }
+    };
+
+    const getWidgetName = (type: string) => {
+      switch (type) {
+        case 'shop-status':
+          return 'Shop Status Widget';
+        case 'image-gallery':
+          return 'Image Gallery Widget';
+        case 'contact-us':
+          return 'Contact Us Widget';
+        default:
+          return 'Widget';
+      }
+    };
+
+    return `
+      <div style="${dummyStyles}">
+        <div>
+          <div style="font-size: 24px; margin-bottom: 8px;">${getWidgetIcon(widgetType)}</div>
+          <div style="font-weight: 600; margin-bottom: 4px;">${getWidgetName(widgetType)}</div>
+          <div style="font-size: 12px; opacity: 0.7; margin-bottom: 4px;">🔒 Preview Mode - Widget Disabled</div>
+          <div style="font-size: 10px; opacity: 0.6; margin-bottom: 4px;">🚫 This area is not editable</div>
+          <div style="font-size: 11px; opacity: 0.5;">✅ Actual widget will work normally on your live site</div>
+        </div>
+      </div>
+    `;
+  };
+
+  const detectAndReplaceWidgets = (html: string): string => {
+    const widgetUrlPattern = /\/widget-preview\/[^\/]+\/(shop-status|image-gallery|contact-us)/g;
+    const iframePattern = /<iframe([^>]*?)src=["']([^"']*?)["']([^>]*?)>/gi;
+    const newOriginalUrls = new Map(originalWidgetUrls);
+    
+    let processedHtml = html;
+    let replacementId = 0;
+
+    // Replace widget iframes with dummy content
+    processedHtml = processedHtml.replace(iframePattern, (match, beforeSrc, src, afterSrc) => {
+      const widgetMatch = src.match(widgetUrlPattern);
+      
+      if (widgetMatch) {
+        const widgetType = widgetMatch[0].split('/').pop();
+        const uniqueId = `widget-placeholder-${replacementId++}`;
+        
+        // Store original URL for restoration later
+        newOriginalUrls.set(uniqueId, src);
+        
+        // Extract dimensions from iframe attributes
+        const widthMatch = match.match(/width=["']([^"']*?)["']/i);
+        const heightMatch = match.match(/height=["']([^"']*?)["']/i);
+        
+        const width = widthMatch ? widthMatch[1] : '400px';
+        const height = heightMatch ? heightMatch[1] : '300px';
+        
+        // Create dummy content
+        const dummyContent = createDummyWidgetContent(widgetType || 'unknown', width, height);
+        
+        console.log(`Replaced widget ${widgetType} with placeholder ${uniqueId}`);
+        
+        return `<div data-widget-placeholder="${uniqueId}" data-original-src="${src}" data-non-editable="true" contenteditable="false" style="user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; pointer-events: none;">${dummyContent}</div>`;
+      }
+      
+      return match;
+    });
+
+    setOriginalWidgetUrls(newOriginalUrls);
+    return processedHtml;
+  };
+
+  const restoreWidgetUrls = (html: string): string => {
+    let restoredHtml = html;
+    
+    // Restore widget iframes from placeholders - match both original placeholders and any modified content
+    const placeholderPattern = /<div\s+data-widget-placeholder=["']([^"']*?)["']\s+data-original-src=["']([^"']*?)["'][^>]*>[\s\S]*?<\/div>/g;
+    
+    restoredHtml = restoredHtml.replace(placeholderPattern, (match, placeholderId, originalSrc) => {
+      console.log(`Restoring widget placeholder ${placeholderId} to ${originalSrc}`);
+      
+      // Extract width and height from the original widget URL or use defaults
+      const widgetType = originalSrc.split('/').pop();
+      let width = '400px';
+      let height = '300px';
+      
+      // Set default dimensions based on widget type
+      switch (widgetType) {
+        case 'shop-status':
+          width = '250px';
+          height = '150px';
+          break;
+        case 'image-gallery':
+          width = '600px';
+          height = '400px';
+          break;
+        case 'contact-us':
+          width = '400px';
+          height = '500px';
+          break;
+      }
+      
+      // Try to extract original dimensions from the placeholder div style if available
+      const styleMatch = match.match(/style=["'][^"']*width:\s*([^;]*?);[^"']*height:\s*([^;]*?);[^"']*["']/);
+      if (styleMatch) {
+        width = styleMatch[1].trim();
+        height = styleMatch[2].trim();
+      }
+      
+      // Return clean iframe with original URL and dimensions - no placeholder content
+      return `<iframe src="${originalSrc}" width="${width}" height="${height}" frameborder="0" style="border: none; border-radius: 12px;"></iframe>`;
+    });
+
+    // Also handle cases where the placeholder content might have been edited or modified during live editing
+    // Look for any remaining widget placeholder divs and clean them up
+    const anyPlaceholderPattern = /<div[^>]*data-widget-placeholder[^>]*>[\s\S]*?<\/div>/g;
+    restoredHtml = restoredHtml.replace(anyPlaceholderPattern, (match) => {
+      // Try to extract the original src from data attributes
+      const srcMatch = match.match(/data-original-src=["']([^"']*?)["']/);
+      if (srcMatch) {
+        const originalSrc = srcMatch[1];
+        const widgetType = originalSrc.split('/').pop();
+        
+        let width = '400px';
+        let height = '300px';
+        
+        switch (widgetType) {
+          case 'shop-status':
+            width = '250px';
+            height = '150px';
+            break;
+          case 'image-gallery':
+            width = '600px';
+            height = '400px';
+            break;
+          case 'contact-us':
+            width = '400px';
+            height = '500px';
+            break;
+        }
+        
+        console.log(`Cleaning up modified widget placeholder for ${widgetType}`);
+        return `<iframe src="${originalSrc}" width="${width}" height="${height}" frameborder="0" style="border: none; border-radius: 12px;"></iframe>`;
+      }
+      
+      // If we can't extract the original src, remove the placeholder entirely
+      console.warn('Found widget placeholder without original src, removing');
+      return '';
+    });
+
+    return restoredHtml;
   };
 
   const getCurrentDirectory = () => {
@@ -324,9 +511,13 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
     const currentDir = getCurrentDirectory();
     const s3BaseUrl = getS3BaseUrl();
     const siteBaseUrl = s3BaseUrl; // Already includes the full proxy path
+    
+    // STEP 1: Replace widget iframes with dummy placeholders to prevent reloading
+    console.log('Replacing widget iframes with placeholders...');
+    let processed = detectAndReplaceWidgets(html);
 
-    // Discover all assets
-    const assets = discoverAssets(html);
+    // Discover all assets from processed content (after widget replacement)
+    const assets = discoverAssets(processed);
     setDiscoveredAssets(assets);
 
     // Process and validate all assets
@@ -366,8 +557,8 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
 
     setAssetStatus(assetStatusMap);
 
-    // Process HTML with enhanced asset resolution
-    let processed = html;
+    // Process HTML with enhanced asset resolution (starting from widget-replaced content)
+    // Note: 'processed' already contains widget-replaced content from earlier step
 
     // Add comprehensive base tag
     if (processed.includes('<head>')) {
@@ -652,14 +843,32 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   const makeContentEditable = (html: string) => {
     let editableHtml = html;
     
+    // First, protect widget placeholder content from being processed
+    // Replace widget placeholder content temporarily to prevent it from being made editable
+    const widgetPlaceholders: Array<{id: string, content: string}> = [];
+    let placeholderIndex = 0;
+    
+    // Extract widget placeholders and replace with safe markers
+    editableHtml = editableHtml.replace(
+      /<div\s+data-widget-placeholder="[^"]*"[^>]*>[\s\S]*?<\/div>/g, 
+      (match) => {
+        const id = `WIDGET_PLACEHOLDER_${placeholderIndex++}`;
+        widgetPlaceholders.push({id, content: match});
+        return `<!--${id}-->`;
+      }
+    );
+    
     // Add contenteditable to common text elements
     const textElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'li', 'td', 'th', 'div'];
     
     textElements.forEach(tag => {
       const regex = new RegExp(`<${tag}([^>]*?)>([^<]+)<\/${tag}>`, 'gi');
       editableHtml = editableHtml.replace(regex, (match, attributes, content) => {
-        // Skip if already has contenteditable or if it's an image container
-        if (attributes.includes('contenteditable') || content.trim().startsWith('<img')) {
+        // Skip if already has contenteditable, if it's an image container, or if it's marked as non-editable
+        if (attributes.includes('contenteditable') || 
+            attributes.includes('data-non-editable') || 
+            content.trim().startsWith('<img') ||
+            content.includes('WIDGET_PLACEHOLDER_')) {
           return match;
         }
         
@@ -668,6 +877,11 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
         
         return `<${tag}${attributes}${editableAttributes}>${content}</${tag}>`;
       });
+    });
+    
+    // Restore widget placeholders
+    widgetPlaceholders.forEach(({id, content}) => {
+      editableHtml = editableHtml.replace(`<!--${id}-->`, content);
     });
     
     return editableHtml;
@@ -724,7 +938,10 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
             contentToSave = contentToSave.replace(/\s*contenteditable="[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*data-editable="[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*data-original="[^"]*"/gi, '');
+            contentToSave = contentToSave.replace(/\s*data-non-editable="[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*style="[^"]*border[^"]*"/gi, '');
+            contentToSave = contentToSave.replace(/\s*style="[^"]*user-select[^"]*"/gi, '');
+            contentToSave = contentToSave.replace(/\s*style="[^"]*pointer-events[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*onmouseover="[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*onmouseout="[^"]*"/gi, '');
             contentToSave = contentToSave.replace(/\s*onfocus="[^"]*"/gi, '');
@@ -737,7 +954,17 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
             // Revert processed URLs back to original relative paths for saving
             contentToSave = revertProcessedUrls(contentToSave);
             
-            console.log('Content reverted for saving - CSS links should be relative paths');
+            // Restore widget iframe URLs from placeholders
+            contentToSave = restoreWidgetUrls(contentToSave);
+            
+            // Additional cleanup: Remove any remaining placeholder text that might have been missed
+            contentToSave = contentToSave.replace(/🔒\s*Preview Mode - Widget Disabled/g, '');
+            contentToSave = contentToSave.replace(/🚫\s*This area is not editable/g, '');
+            contentToSave = contentToSave.replace(/✅\s*Actual widget will work normally on your live site/g, '');
+            contentToSave = contentToSave.replace(/Image Gallery Widget|Shop Status Widget|Contact Us Widget/g, '');
+            contentToSave = contentToSave.replace(/🏪|🖼️|📧|🔧|🔒|🚫|✅/g, '');
+            
+            console.log('Content reverted for saving - CSS links should be relative paths and widgets restored');
           }
         } catch (err) {
           console.warn('Could not access iframe content, using stored content');
@@ -745,6 +972,16 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
           
           // Also revert the stored content if it contains processed URLs
           contentToSave = revertProcessedUrls(contentToSave);
+          
+          // Restore widget URLs from stored content
+          contentToSave = restoreWidgetUrls(contentToSave);
+          
+          // Additional cleanup for stored content as well
+          contentToSave = contentToSave.replace(/🔒\s*Preview Mode - Widget Disabled/g, '');
+          contentToSave = contentToSave.replace(/🚫\s*This area is not editable/g, '');
+          contentToSave = contentToSave.replace(/✅\s*Actual widget will work normally on your live site/g, '');
+          contentToSave = contentToSave.replace(/Image Gallery Widget|Shop Status Widget|Contact Us Widget/g, '');
+          contentToSave = contentToSave.replace(/🏪|🖼️|📧|🔧|🔒|🚫|✅/g, '');
         }
       }
 
@@ -819,6 +1056,7 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
     setSelectedImageForReplacement(null);
     setDiscoveredAssets({ css: new Set(), js: new Set(), images: new Set(), fonts: new Set(), other: new Set() });
     setAssetStatus({});
+    setOriginalWidgetUrls(new Map()); // Clear widget URL mappings
     onClose();
   };
 
