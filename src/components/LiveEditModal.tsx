@@ -183,6 +183,53 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
       return match;
     });
 
+    // Also look for potentially widget-related iframes with empty src or specific IDs
+    const potentialWidgetIframePattern = /<iframe([^>]*?)id=["']([^"']*widget[^"']*)["']([^>]*?)>/gi;
+    processedHtml = processedHtml.replace(potentialWidgetIframePattern, (match, beforeId, id, afterId) => {
+      // Check if this looks like a widget iframe based on ID
+      const isContactWidget = id.includes('contact');
+      const isGalleryWidget = id.includes('gallery') || id.includes('image');
+      const isShopWidget = id.includes('shop') || id.includes('status');
+      
+      if (isContactWidget || isGalleryWidget || isShopWidget) {
+        const widgetType = isContactWidget ? 'contact-us' : 
+                          isGalleryWidget ? 'image-gallery' : 
+                          'shop-status';
+        
+        const uniqueId = `widget-placeholder-${replacementId++}`;
+        
+        // Store a placeholder URL since we don't have the actual URL yet
+        const placeholderUrl = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/widget-preview/${mobileNumber}/${widgetType}`;
+        newOriginalUrls.set(uniqueId, placeholderUrl);
+        
+        // Extract dimensions from iframe attributes
+        const widthMatch = match.match(/width=["']([^"']*?)["']/i);
+        const heightMatch = match.match(/height=["']([^"']*?)["']/i);
+        const styleMatch = match.match(/style=["']([^"']*?)["']/i);
+        
+        let width = widthMatch ? widthMatch[1] : '400px';
+        let height = heightMatch ? heightMatch[1] : '500px';
+        
+        // Try to extract dimensions from style attribute if not found in width/height
+        if (styleMatch && styleMatch[1]) {
+          const style = styleMatch[1];
+          const minHeightMatch = style.match(/min-height:\s*([^;]*)/);
+          if (minHeightMatch) {
+            height = minHeightMatch[1].trim();
+          }
+        }
+        
+        // Create dummy content
+        const dummyContent = createDummyWidgetContent(widgetType, width, height);
+        
+        console.log(`Replaced dynamic widget iframe (${id}) with placeholder ${uniqueId}`);
+        
+        return `<div data-widget-placeholder="${uniqueId}" data-original-src="${placeholderUrl}" data-original-id="${id}" data-non-editable="true" contenteditable="false" style="user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; pointer-events: none;">${dummyContent}</div>`;
+      }
+      
+      return match;
+    });
+
     setOriginalWidgetUrls(newOriginalUrls);
     return processedHtml;
   };
@@ -191,41 +238,68 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
     let restoredHtml = html;
     
     // Restore widget iframes from placeholders - match both original placeholders and any modified content
-    const placeholderPattern = /<div\s+data-widget-placeholder=["']([^"']*?)["']\s+data-original-src=["']([^"']*?)["'][^>]*>[\s\S]*?<\/div>/g;
+    const placeholderPattern = /<div\s+data-widget-placeholder=["']([^"']*?)["']\s+data-original-src=["']([^"']*?)["']([^>]*?)>[\s\S]*?<\/div>/g;
     
-    restoredHtml = restoredHtml.replace(placeholderPattern, (match, placeholderId, originalSrc) => {
+    restoredHtml = restoredHtml.replace(placeholderPattern, (match, placeholderId, originalSrc, additionalAttrs) => {
       console.log(`Restoring widget placeholder ${placeholderId} to ${originalSrc}`);
       
-      // Extract width and height from the original widget URL or use defaults
-      const widgetType = originalSrc.split('/').pop();
-      let width = '400px';
-      let height = '300px';
+      // Check if this was originally a dynamic iframe (has data-original-id)
+      const originalIdMatch = additionalAttrs.match(/data-original-id=["']([^"']*?)["']/);
       
-      // Set default dimensions based on widget type
-      switch (widgetType) {
-        case 'shop-status':
-          width = '250px';
-          height = '150px';
-          break;
-        case 'image-gallery':
-          width = '600px';
-          height = '400px';
-          break;
-        case 'contact-us':
-          width = '400px';
-          height = '500px';
-          break;
+      if (originalIdMatch) {
+        // This was originally an iframe with empty src that gets populated dynamically
+        // Restore it to the original empty iframe format
+        const originalId = originalIdMatch[1];
+        
+        // Extract original styling from the placeholder div
+        let originalStyle = '';
+        const styleMatch = match.match(/min-height:\s*([^;]*)/);
+        if (styleMatch) {
+          originalStyle = `style="aspect-ratio: 4/5; min-height: ${styleMatch[1].trim()};"`;
+        }
+        
+        console.log(`Restoring dynamic widget iframe with id: ${originalId}`);
+        
+        return `<iframe 
+            id="${originalId}"
+            src=""
+            class="w-full rounded-lg border-0"
+            ${originalStyle || 'style="aspect-ratio: 4/5; min-height: 500px;"'}
+            frameborder="0"
+            allowfullscreen>
+        </iframe>`;
+      } else {
+        // This was a regular widget iframe with a proper src URL
+        const widgetType = originalSrc.split('/').pop();
+        let width = '400px';
+        let height = '300px';
+        
+        // Set default dimensions based on widget type
+        switch (widgetType) {
+          case 'shop-status':
+            width = '250px';
+            height = '150px';
+            break;
+          case 'image-gallery':
+            width = '600px';
+            height = '400px';
+            break;
+          case 'contact-us':
+            width = '400px';
+            height = '500px';
+            break;
+        }
+        
+        // Try to extract original dimensions from the placeholder div style if available
+        const styleMatch = match.match(/style=["'][^"']*width:\s*([^;]*?);[^"']*height:\s*([^;]*?);[^"']*["']/);
+        if (styleMatch) {
+          width = styleMatch[1].trim();
+          height = styleMatch[2].trim();
+        }
+        
+        // Return clean iframe with original URL and dimensions - no placeholder content
+        return `<iframe src="${originalSrc}" width="${width}" height="${height}" frameborder="0" style="border: none; border-radius: 12px;"></iframe>`;
       }
-      
-      // Try to extract original dimensions from the placeholder div style if available
-      const styleMatch = match.match(/style=["'][^"']*width:\s*([^;]*?);[^"']*height:\s*([^;]*?);[^"']*["']/);
-      if (styleMatch) {
-        width = styleMatch[1].trim();
-        height = styleMatch[2].trim();
-      }
-      
-      // Return clean iframe with original URL and dimensions - no placeholder content
-      return `<iframe src="${originalSrc}" width="${width}" height="${height}" frameborder="0" style="border: none; border-radius: 12px;"></iframe>`;
     });
 
     // Also handle cases where the placeholder content might have been edited or modified during live editing

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Dynamic Widget Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="font-poppins">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg fixed w-full top-0 z-50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-pink-600">Test Dynamic Widget</h1>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-16 bg-gradient-to-r from-pink-400 via-purple-500 to-indigo-600 text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
+            <p class="text-lg md:text-xl max-w-2xl mx-auto">Testing dynamic widget loading scenario</p>
+        </div>
+    </section>
+
+    <!-- Contact Form and Map Section -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Book Your Appointment</h2>
+                <p class="text-lg text-gray-600">This demonstrates the dynamic widget loading scenario</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Contact Form Widget - Dynamic Loading -->
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h3>
+                    <p class="text-gray-600 mb-4">This contact widget is loaded dynamically via JavaScript from adbix.json</p>
+                    
+                    <div class="contact-form-container">
+                        <iframe 
+                            id="contact-widget"
+                            src=""
+                            class="w-full rounded-lg border-0"
+                            style="aspect-ratio: 4/5; min-height: 500px;"
+                            frameborder="0"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    
+                    <!-- Fallback Contact Information -->
+                    <div class="mt-6 p-4 bg-pink-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-900 mb-2">Quick Contact</h4>
+                        <div class="space-y-2 text-sm">
+                            <p class="flex items-center text-gray-700">
+                                <i class="fas fa-phone text-pink-600 mr-2"></i>
+                                <a href="tel:9823226630" class="hover:text-pink-600">9823226630</a>
+                            </p>
+                            <p class="flex items-center text-gray-700">
+                                <i class="fas fa-envelope text-pink-600 mr-2"></i>
+                                <a href="mailto:info@example.com" class="hover:text-pink-600">info@example.com</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Another Widget Example - Gallery -->
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6">Image Gallery Widget</h3>
+                    <p class="text-gray-600 mb-4">This gallery widget also loads dynamically</p>
+                    
+                    <div class="gallery-container">
+                        <iframe 
+                            id="gallery-widget"
+                            src=""
+                            class="w-full rounded-lg border-0"
+                            style="aspect-ratio: 16/9; min-height: 400px;"
+                            frameborder="0"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Regular Widget with Direct URL -->
+            <div class="mt-12 bg-white rounded-lg shadow-lg p-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6">Shop Status Widget (Direct URL)</h3>
+                <p class="text-gray-600 mb-4">This widget has a direct URL and should also be handled</p>
+                
+                <div class="text-center">
+                    <iframe 
+                        src="http://localhost:3000/widget-preview/1234567890/shop-status" 
+                        width="250" 
+                        height="150" 
+                        frameborder="0"
+                        style="border: none; border-radius: 12px;">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testing Notes -->
+    <section class="py-16 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-blue-900 mb-4">🧪 Testing Dynamic Widget Scenario</h3>
+                <div class="text-sm text-blue-800">
+                    <p class="mb-2"><strong>Scenario:</strong> This page demonstrates the exact scenario you described:</p>
+                    <ul class="list-disc list-inside space-y-1 mb-4">
+                        <li><strong>contact-widget:</strong> iframe with empty src="" that gets populated by JavaScript from adbix.json</li>
+                        <li><strong>gallery-widget:</strong> Another dynamic iframe for testing</li>
+                        <li><strong>shop-status:</strong> Regular widget with direct URL</li>
+                    </ul>
+                    
+                    <p class="mb-2"><strong>Expected Behavior in Live Editor:</strong></p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>✅ All three widget areas should be replaced with non-editable placeholders</li>
+                        <li>✅ Dynamic widgets (contact-widget, gallery-widget) detected by ID</li>
+                        <li>✅ Direct URL widget (shop-status) detected by URL pattern</li>
+                        <li>✅ No reloading issues during editing</li>
+                        <li>✅ Original iframe structure restored when saving</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Script that would normally load widgets dynamically -->
+    <script>
+        // This script simulates the dynamic loading from adbix.json
+        // In your actual implementation, this would read from adbix.json
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate dynamic widget loading
+            const contactWidget = document.getElementById('contact-widget');
+            const galleryWidget = document.getElementById('gallery-widget');
+            
+            if (contactWidget) {
+                // Simulate loading the contact widget URL from adbix.json
+                setTimeout(() => {
+                    contactWidget.src = 'http://localhost:3000/widget-preview/1234567890/contact-us';
+                    console.log('Contact widget loaded dynamically');
+                }, 1000);
+            }
+            
+            if (galleryWidget) {
+                // Simulate loading the gallery widget URL from adbix.json
+                setTimeout(() => {
+                    galleryWidget.src = 'http://localhost:3000/widget-preview/1234567890/image-gallery';
+                    console.log('Gallery widget loaded dynamically');
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>
