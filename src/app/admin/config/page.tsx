@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import ServerSettingsForm from '@/components/ServerSettingsForm';
+import BusinessCategoryManager from '@/components/BusinessCategoryManager';
 
 export default function AdminConfigPage() {
   const [activeTab, setActiveTab] = useState('server-settings');
 
   const tabs = [
     { id: 'server-settings', label: 'Server Settings', icon: '⚙️' },
+    { id: 'business-categories', label: 'Business Categories', icon: '🏷️' },
     { id: 'storage', label: 'Storage Settings', icon: '💾' },
     { id: 'security', label: 'Security Settings', icon: '🔒' },
   ];
@@ -48,6 +50,13 @@ export default function AdminConfigPage() {
             {activeTab === 'server-settings' && (
               <div>
                 <ServerSettingsForm />
+              </div>
+            )}
+
+            {/* Business Categories Tab */}
+            {activeTab === 'business-categories' && (
+              <div>
+                <BusinessCategoryManager />
               </div>
             )}
 

@@ -21,6 +21,7 @@ interface Image {
   lastModified: string;
   contentType: string;
   key: string;
+  index?: number;
 }
 
 interface AssetInfo {
@@ -813,7 +814,7 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   };
 
   // Replace image in the current HTML content
-  const replaceImageInContent = async (oldImagePath: string, newImageUrl: string) => {
+  const replaceImageInContent = async (oldImagePath: string, newImageUrl: string, imageIndex?: number) => {
     try {
       const response = await fetch('/api/update-image-url', {
         method: 'POST',
@@ -824,7 +825,8 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
           oldImagePath: oldImagePath,
           newImageUrl: newImageUrl,
           mobileNumber: mobileNumber,
-          currentPagePath: filePath.split('/').pop() || 'index.html'
+          currentPagePath: filePath.split('/').pop() || 'index.html',
+          imageIndex: imageIndex
         })
       });
 
@@ -864,7 +866,7 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
   const handleImageSelection = (image: Image) => {
     if (selectedImageForReplacement) {
       // Replace the selected image with the chosen image
-      replaceImageInContent(selectedImageForReplacement.publicUrl, image.publicUrl);
+      replaceImageInContent(selectedImageForReplacement.publicUrl, image.publicUrl, selectedImageForReplacement.index);
       setSelectedImageForReplacement(null);
       setShowImageManager(false);
     } else {
@@ -907,7 +909,8 @@ export default function LiveEditModal({ isOpen, onClose, filePath, mobileNumber 
         size: 0,
         lastModified: new Date().toISOString(),
         contentType: 'image/*',
-        key: `webpage-${imageIndex}`
+        key: `webpage-${imageIndex}`,
+        index: imageIndex
       });
       setSuccess(`Selected "${selectedImage.alt}" for replacement. Now choose a new image from your gallery.`);
     }

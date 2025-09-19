@@ -529,7 +529,7 @@ export default function BillingPage() {
             contact: customerInfo.phone
           },
           theme: {
-            color: '#9333ea'
+            color: '#0891b2'
           },
           modal: {
             ondismiss: function() {

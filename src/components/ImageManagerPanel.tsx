@@ -21,7 +21,7 @@ interface ImageManagerPanelProps {
   isOpen: boolean;
   onClose: () => void;
   iframeRef: React.RefObject<HTMLIFrameElement>;
-  onReplace: (oldImageUrl: string, newImageUrl: string) => void;
+  onReplace: (oldImageUrl: string, newImageUrl: string, imageIndex?: number) => void;
   userImages: Image[];
   loadingUserImages: boolean;
   reloadUserImages: () => void;
@@ -42,85 +42,84 @@ const ImageManagerPanel: React.FC<ImageManagerPanelProps> = ({
   // Remove successMessage state
   // Remove replaceModal, uploading, urlInput, error, and modal logic
 
-  // Extract images from iframe
+  // Extract images from iframe (including background images)
   useEffect(() => {
     if (!isOpen) return;
     if (!iframeRef.current) return;
     try {
       const iframeDoc = iframeRef.current.contentDocument;
       if (!iframeDoc) return;
+      
+      const imgs: WebpageImage[] = [];
+      let imageIndex = 0;
+      
+      // Extract img tags
       const imgElements = iframeDoc.querySelectorAll('img');
-      const imgs = Array.from(imgElements).map((img, index) => ({
-        index,
-        src: img.src,
-        alt: img.alt || `Image ${index + 1}`,
-      }));
+      imgElements.forEach((img) => {
+        imgs.push({
+          index: imageIndex++,
+          src: img.src,
+          alt: img.alt || `Image ${imageIndex}`,
+        });
+      });
+      
+      // Extract background images from all elements
+      const allElements = iframeDoc.querySelectorAll('*');
+      allElements.forEach((element) => {
+        const computedStyle = iframeDoc.defaultView?.getComputedStyle(element);
+        if (computedStyle) {
+          const backgroundImage = computedStyle.backgroundImage;
+          if (backgroundImage && backgroundImage !== 'none') {
+            // Extract URL from background-image property
+            const urlMatch = backgroundImage.match(/url\(["']?([^"')]+)["']?\)/);
+            if (urlMatch && urlMatch[1]) {
+              imgs.push({
+                index: imageIndex++,
+                src: urlMatch[1],
+                alt: `Background image ${imageIndex}`,
+              });
+            }
+          }
+        }
+      });
+      
+      console.log(`🔍 ImageManagerPanel: Found ${imgs.length} images`);
+      imgs.forEach((img, idx) => {
+        console.log(`  ${idx}: ${img.src} (${img.alt})`);
+      });
+      
+      // Debug: Also check what URLs are in the original HTML content
+      console.log(`🔍 ImageManagerPanel: Checking original HTML content for comparison...`);
+      if (iframeDoc.documentElement) {
+        const htmlContent = iframeDoc.documentElement.outerHTML;
+        const imgTagPattern = /<img[^>]*src=["']([^"']+)["'][^>]*>/gi;
+        const htmlImgMatches = [...htmlContent.matchAll(imgTagPattern)];
+        console.log(`🔍 ImageManagerPanel: Found ${htmlImgMatches.length} img tags in HTML content:`);
+        htmlImgMatches.forEach((match, idx) => {
+          console.log(`  HTML ${idx}: ${match[1]}`);
+        });
+      }
+      
       setWebImages(imgs);
     } catch (e) {
+      console.error('Error extracting images from iframe:', e);
       setWebImages([]);
     }
   }, [isOpen, iframeRef, iframeRef.current?.src]);
 
-  // Handle image replacement from gallery
-  const handleReplaceFromGallery = (webImg: WebpageImage, galleryImg: Image) => {
-    onReplace(webImg.src, galleryImg.publicUrl);
-    // setReplaceModal(null); // This line is removed
-  };
-
-  // Handle image replacement from file upload
-  const handleReplaceFromUpload = async (webImg: WebpageImage, file: File) => {
-    // setUploading(true); // This line is removed
-    // setError(''); // This line is removed
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('oldImagePath', webImg.src);
-      // You may need to pass mobileNumber or other info as needed
-      const response = await fetch('/api/replace-image', {
-        method: 'POST',
-        body: formData,
-      });
-      const result = await response.json();
-      if (!response.ok || !result.imageUrl) {
-        throw new Error(result.error || 'Failed to replace image');
-      }
-      onReplace(webImg.src, result.imageUrl);
-      // setReplaceModal(null); // This line is removed
-    } catch (e: any) {
-      // setError(e.message || 'Failed to upload'); // This line is removed
-    } finally {
-      // setUploading(false); // This line is removed
-    }
-  };
-
-  // Handle image replacement from URL
-  const handleReplaceFromUrl = async (webImg: WebpageImage, url: string) => {
-    // setUploading(true); // This line is removed
-    // setError(''); // This line is removed
-    try {
-      // Validate URL
-      new URL(url);
-      // Call API to update image URL in HTML
-      const response = await fetch('/api/replace-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: url, imagePath: webImg.src }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.imageUrl) {
-        throw new Error(result.error || 'Failed to replace image');
-      }
-      onReplace(webImg.src, result.imageUrl);
-      // setReplaceModal(null); // This line is removed
-    } catch (e: any) {
-      // setError(e.message || 'Invalid URL'); // This line is removed
-    } finally {
-      // setUploading(false); // This line is removed
-    }
-  };
+  // Handle image replacement from gallery (REMOVED - not needed)
+  // Handle image replacement from file upload (REMOVED - not needed)
+  // Handle image replacement from URL (REMOVED - not needed)
 
   // Handle image replacement from repository popup
   const handleReplaceFromRepo = (webImg: WebpageImage) => {
+    // Store the image data globally for the message listener
+    window.imageReplaceData = {
+      originalSrc: webImg.src,
+      imageIndex: webImg.index,
+      alt: webImg.alt
+    };
+    
     // Open popup
     const popup = window.open(
       '/image_repo?mode=select',
@@ -128,25 +127,38 @@ const ImageManagerPanel: React.FC<ImageManagerPanelProps> = ({
       'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
     );
     if (!popup) {
-      // setError('Popup blocked! Please allow popups for this site.');
+      showGlobalToast('Popup blocked! Please allow popups for this site.', 3000);
       return;
     }
+    
     // Listen for message
     const messageHandler = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data && event.data.type === 'IMAGE_SELECTED') {
         const selectedImageUrl = event.data.imageUrl;
-        onReplace(webImg.src, selectedImageUrl);
+        
+        // Call the update-image-url API directly with imageIndex
+        console.log(`🔄 ImageManagerPanel: Replacing image at index ${webImg.index}`);
+        console.log(`  Old URL (from iframe): ${webImg.src}`);
+        console.log(`  New URL (from popup): ${selectedImageUrl}`);
+        console.log(`  Alt text: ${webImg.alt}`);
+        console.log(`  ImageIndex: ${webImg.index}`);
+        onReplace(webImg.src, selectedImageUrl, webImg.index);
+        
         showGlobalToast('Image replaced successfully!', 2000);
         if (typeof onImageReplaced === 'function') onImageReplaced();
+        
         setTimeout(() => {
           onClose();
         }, 2000);
+        
         window.removeEventListener('message', messageHandler);
         popup.close();
       }
     };
+    
     window.addEventListener('message', messageHandler);
+    
     // Cleanup if popup is closed manually
     const checkClosed = setInterval(() => {
       if (popup.closed) {

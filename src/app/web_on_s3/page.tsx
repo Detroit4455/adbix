@@ -52,6 +52,7 @@ export default function WebOnS3Page() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [canUploadWebsite, setCanUploadWebsite] = useState(false);
+  const [canAccessFileManager, setCanAccessFileManager] = useState(false);
   const [permissionLoading, setPermissionLoading] = useState(true);
   const [isMobileView, setIsMobileView] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
@@ -72,30 +73,39 @@ export default function WebOnS3Page() {
 
 
 
-  // Check upload website permission
+  // Check upload website and file manager permissions
   useEffect(() => {
-    const checkUploadPermission = async () => {
+    const checkPermissions = async () => {
       if (!session?.user?.role) {
         setPermissionLoading(false);
         return;
       }
 
       try {
-        const response = await fetch(`/api/admin/rbac-settings/check?resource=upload-website&role=${session.user.role}`);
-        if (response.ok) {
-          const data = await response.json();
-          setCanUploadWebsite(data.hasAccess);
+        // Check upload website permission
+        const uploadResponse = await fetch(`/api/admin/rbac-settings/check?resource=upload-website&role=${session.user.role}`);
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          setCanUploadWebsite(uploadData.hasAccess);
+        }
+
+        // Check file manager permission
+        const fileManagerResponse = await fetch(`/api/admin/rbac-settings/check?resource=file-manager&role=${session.user.role}`);
+        if (fileManagerResponse.ok) {
+          const fileManagerData = await fileManagerResponse.json();
+          setCanAccessFileManager(fileManagerData.hasAccess);
         }
       } catch (error) {
-        console.error('Error checking upload permission:', error);
+        console.error('Error checking permissions:', error);
         setCanUploadWebsite(false);
+        setCanAccessFileManager(false);
       } finally {
         setPermissionLoading(false);
       }
     };
 
     if (session) {
-      checkUploadPermission();
+      checkPermissions();
     }
   }, [session]);
 
@@ -161,7 +171,10 @@ export default function WebOnS3Page() {
     if (!canUploadWebsite && activeTab === 'upload') {
       setActiveTab('preview');
     }
-  }, [canUploadWebsite, activeTab]);
+    if (!canAccessFileManager && activeTab === 'files') {
+      setActiveTab('preview');
+    }
+  }, [canUploadWebsite, canAccessFileManager, activeTab]);
 
   if (status === 'loading' || permissionLoading) {
     return (
@@ -217,6 +230,9 @@ export default function WebOnS3Page() {
   const tabs = allTabs.filter(tab => {
     if (tab.id === 'upload') {
       return canUploadWebsite;
+    }
+    if (tab.id === 'files') {
+      return canAccessFileManager;
     }
     return true;
   });

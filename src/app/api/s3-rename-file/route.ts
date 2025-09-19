@@ -33,13 +33,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID, old path, and new name are required' }, { status: 400 });
     }
     
-    // Check permissions - either admin/manager or the user themselves
+    // Check permissions - either admin/manager or the user themselves with file-manager access
     const userRole = session.user.role || 'user';
     const isAdmin = await checkResourceAccess('user-management', userRole);
     const isSelf = session.user.mobileNumber === userId;
+    const hasFileManagerAccess = await checkResourceAccess('file-manager', userRole);
     
-    if (!isAdmin && !isSelf) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    if (!isAdmin && (!isSelf || !hasFileManagerAccess)) {
+      return NextResponse.json({ error: 'Access denied. You need file manager permissions to rename files.' }, { status: 403 });
     }
     
     // Construct the S3 keys

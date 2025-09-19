@@ -56,6 +56,8 @@ export default function ProfilePage() {
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [success, setSuccess] = useState('');
+  const [businessCategories, setBusinessCategories] = useState<Array<{id: string, name: string, description?: string}>>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -63,6 +65,7 @@ export default function ProfilePage() {
       redirect('/login');
     }
     fetchProfile();
+    fetchBusinessCategories();
   }, [session, status]);
 
   const fetchProfile = async () => {
@@ -90,6 +93,23 @@ export default function ProfilePage() {
       console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBusinessCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await fetch('/api/business-categories');
+      if (response.ok) {
+        const data = await response.json();
+        setBusinessCategories(data.categories);
+      } else {
+        console.error('Failed to fetch business categories');
+      }
+    } catch (error) {
+      console.error('Error fetching business categories:', error);
+    } finally {
+      setCategoriesLoading(false);
     }
   };
 
@@ -482,18 +502,28 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Business Category
                     </label>
-                    <input
-                      type="text"
-                      value={formData.businessCategory}
-                      onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
-                      disabled={!editing}
-                      className={`block w-full px-4 py-3 border rounded-lg leading-5 transition-colors ${
-                        editing 
-                          ? 'border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
-                          : 'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed'
-                      }`}
-                      placeholder="e.g., Restaurant, Retail, Services"
-                    />
+                    {editing ? (
+                      <select
+                        value={formData.businessCategory}
+                        onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
+                        disabled={categoriesLoading}
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg leading-5 transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">Select a business category...</option>
+                        {businessCategories.map((category) => (
+                          <option key={category.id} value={category.name} title={category.description}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="block w-full px-4 py-3 border border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed rounded-lg leading-5">
+                        {formData.businessCategory || 'Not specified'}
+                      </div>
+                    )}
+                    {categoriesLoading && editing && (
+                      <p className="text-sm text-gray-500 mt-1">Loading categories...</p>
+                    )}
                   </div>
 
                   {/* Location Fields */}

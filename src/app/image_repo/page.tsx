@@ -394,21 +394,28 @@ export default function ImageRepoPage() {
   // Handle image selection for preview mode
   const handleImageSelection = (image: ImageFile) => {
     if (isSelectionMode && window.opener) {
-      // Simple approach: Extract just the image path and create a clean CloudFront URL
+      // Use the proper CloudFront URL from environment or fallback to S3
       const imagePathMatch = image.s3Url.match(/imagerepo\/[a-f0-9-]+\.(png|jpg|jpeg|gif|webp|svg)/i);
       
-             let finalUrl;
-       if (imagePathMatch) {
-         // Create clean CloudFront URL
-         finalUrl = `https://d2zexu2cqcpus.cloudfront.net/${imagePathMatch[0]}`;
-       } else {
-         // Fallback to original S3 URL if pattern doesn't match
-         finalUrl = image.s3Url;
-       }
+      let finalUrl;
+      if (imagePathMatch) {
+        // Use the proper CloudFront URL from environment
+        const cloudFrontBaseUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL;
+        if (cloudFrontBaseUrl) {
+          finalUrl = `${cloudFrontBaseUrl}/${imagePathMatch[0]}`;
+        } else {
+          // Fallback to S3 URL if CloudFront not configured
+          finalUrl = image.s3Url;
+        }
+      } else {
+        // Fallback to original S3 URL if pattern doesn't match
+        finalUrl = image.s3Url;
+      }
       
-      console.log('🖼️ Simple image selection:', {
+      console.log('🖼️ Image selection with proper CloudFront URL:', {
         originalS3Url: image.s3Url,
         extractedImagePath: imagePathMatch ? imagePathMatch[0] : 'not found',
+        cloudFrontBaseUrl: process.env.NEXT_PUBLIC_CLOUDFRONT_BASE_URL || 'Not configured',
         finalCleanUrl: finalUrl
       });
       
@@ -490,20 +497,20 @@ export default function ImageRepoPage() {
             </div>
           </div>
         )}
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
           {/* Header */}
-          <div className="mb-10">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mb-6 sm:mb-10">
+            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-gray-700 to-gray-600 bg-clip-text text-transparent mb-2">
+                <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 via-gray-700 to-gray-600 bg-clip-text text-transparent mb-1 sm:mb-2">
                   Image Gallery
                 </h1>
-                <p className="text-xl text-gray-600 font-medium">
+                <p className="text-sm sm:text-lg lg:text-xl text-gray-600 font-medium">
                   Manage and organize your images with advanced cloud features
                 </p>
               </div>
@@ -513,17 +520,17 @@ export default function ImageRepoPage() {
             <div className={`flex border-b border-gray-200 bg-white ${!isSelectionMode ? 'rounded-t-2xl' : 'rounded-t-2xl mt-6'} shadow-sm`}>
               <button
                 onClick={() => setActiveTab('repository')}
-                className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 relative ${
+                className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all duration-200 relative ${
                   activeTab === 'repository'
                     ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
-                  Image Gallery
+                  <span className="text-sm sm:text-base">Gallery</span>
                 </div>
                 {isSelectionMode && (
                   <div className="text-xs text-indigo-500 mt-1">Shared Repository</div>
@@ -531,17 +538,17 @@ export default function ImageRepoPage() {
               </button>
               <button
                 onClick={() => setActiveTab('myImages')}
-                className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 relative ${
+                className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all duration-200 relative ${
                   activeTab === 'myImages'
                     ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                   }`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  My Images
+                  <span className="text-sm sm:text-base">My Images</span>
                 </div>
                 {isSelectionMode && (
                   <div className="text-xs text-indigo-500 mt-1">Your Personal Images</div>
@@ -553,7 +560,7 @@ export default function ImageRepoPage() {
           {/* Tab Content */}
           {activeTab === 'myImages' ? (
             /* My Images Tab */
-            <div className="bg-white rounded-b-2xl shadow-sm p-6">
+            <div className="bg-white rounded-b-2xl shadow-sm p-3 sm:p-6">
               <MyImages isSelectionMode={isSelectionMode} />
             </div>
           ) : (
@@ -581,14 +588,15 @@ export default function ImageRepoPage() {
                 </div>
               )}
 
-          {/* Controls - Hidden in selection mode */}
-          {!isSelectionMode && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-8">
-              <div className="flex flex-col sm:flex-row gap-6 items-center justify-between">
-                <div className="flex items-center gap-4">
+          {/* Filters - Always visible, Upload/Delete controls hidden in selection mode */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+            <div className="flex flex-col gap-4 sm:gap-6">
+              {/* Upload/Delete Controls - Hidden in selection mode */}
+              {!isSelectionMode && (
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   {hasUploadAccess && (
-                    <label className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <label className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium flex items-center gap-2 text-sm sm:text-base">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                       <input
@@ -598,7 +606,8 @@ export default function ImageRepoPage() {
                         onChange={handleFileSelection}
                         className="hidden"
                       />
-                      Upload Images
+                      <span className="hidden sm:inline">Upload Images</span>
+                      <span className="sm:hidden">Upload</span>
                     </label>
                   )}
                   
@@ -606,42 +615,47 @@ export default function ImageRepoPage() {
                     <button
                       onClick={handleDeleteSelected}
                       disabled={isDeleting}
-                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none font-medium flex items-center gap-2"
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none font-medium flex items-center gap-2 text-sm sm:text-base"
                     >
                       {isDeleting ? (
                         <>
-                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Deleting...
+                          <span className="hidden sm:inline">Deleting...</span>
+                          <span className="sm:hidden">...</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          Delete Selected ({selectedImages.length})
+                          <span className="hidden sm:inline">Delete Selected ({selectedImages.length})</span>
+                          <span className="sm:hidden">Delete ({selectedImages.length})</span>
                         </>
                       )}
                     </button>
                   )}
 
                   {!hasUploadAccess && (
-                    <div className="bg-gradient-to-r from-gray-400 to-gray-500 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-not-allowed opacity-75">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-gradient-to-r from-gray-400 to-gray-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium flex items-center gap-2 cursor-not-allowed opacity-75 text-sm sm:text-base">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
-                      Upload Restricted
+                      <span className="hidden sm:inline">Upload Restricted</span>
+                      <span className="sm:hidden">Restricted</span>
                     </div>
                   )}
                 </div>
+              )}
 
-              <div className="flex items-center gap-4">
+              {/* Filters - Always visible */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm shadow-sm font-medium"
+                  className="px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm shadow-sm font-medium text-sm sm:text-base"
                 >
                   {imageTypes.map(type => (
                     <option key={type.value} value={type.value}>
@@ -653,7 +667,7 @@ export default function ImageRepoPage() {
                 <select
                   value={filterRatio}
                   onChange={(e) => setFilterRatio(e.target.value)}
-                  className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm shadow-sm font-medium"
+                  className="px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm shadow-sm font-medium text-sm sm:text-base"
                 >
                   {aspectRatios.map(ratio => (
                     <option key={ratio.value} value={ratio.value}>
@@ -662,37 +676,37 @@ export default function ImageRepoPage() {
                   ))}
                 </select>
 
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-none">
                   <input
                     type="text"
                     placeholder="Search images..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm shadow-sm font-medium min-w-[280px]"
+                    className="pl-10 sm:pl-12 pr-4 py-2 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm shadow-sm font-medium w-full sm:min-w-[280px] text-sm sm:text-base"
                   />
-                  <svg className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="absolute left-3 sm:left-4 top-2.5 sm:top-3.5 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
 
-                <div className="flex border border-gray-200 rounded-xl overflow-hidden bg-white/70 backdrop-blur-sm shadow-sm">
+                <div className="flex border border-gray-200 rounded-lg sm:rounded-xl overflow-hidden bg-white/70 backdrop-blur-sm shadow-sm">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-3 transition-all duration-200 ${viewMode === 'grid' 
+                    className={`p-2 sm:p-3 transition-all duration-200 ${viewMode === 'grid' 
                       ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg' 
                       : 'bg-transparent text-gray-600 hover:bg-gray-50'}`}
                   >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                     </svg>
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-3 transition-all duration-200 ${viewMode === 'list' 
+                    className={`p-2 sm:p-3 transition-all duration-200 ${viewMode === 'list' 
                       ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg' 
                       : 'bg-transparent text-gray-600 hover:bg-gray-50'}`}
                   >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     </svg>
                   </button>
@@ -700,7 +714,6 @@ export default function ImageRepoPage() {
               </div>
             </div>
           </div>
-          )}
 
           {/* Images Display */}
           {filteredImages.length === 0 ? (
@@ -731,15 +744,15 @@ export default function ImageRepoPage() {
               )}
             </div>
           ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {filteredImages.map((image) => (
-                <div key={image.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                <div key={image.id} className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-white/20 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 sm:hover:-translate-y-2">
                   <div className="relative cursor-pointer" onClick={() => openFullSizeModal(image)}>
                     <img
                       src={image.s3Url}
                       alt={image.name}
                       loading="lazy"
-                      className="w-full h-52 object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-32 sm:h-36 lg:h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     
@@ -752,86 +765,55 @@ export default function ImageRepoPage() {
                       </div>
                     </div>
 
-                    <div className="absolute top-3 left-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="absolute top-2 sm:top-3 left-2 sm:left-3" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedImages.includes(image.id)}
                         onChange={() => handleSelectImage(image.id)}
-                        className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded-md shadow-lg bg-white/90 backdrop-blur-sm"
+                        className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded-md shadow-lg bg-white/90 backdrop-blur-sm"
                       />
                     </div>
-                    <div className="absolute top-3 right-3">
-                      <div className="flex flex-col gap-2 items-end">
-                        <span className="bg-white/90 backdrop-blur-sm text-xs px-3 py-1 rounded-full shadow-lg font-medium text-gray-700 border border-white/50">
+                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
+                      <div className="flex flex-col gap-1 sm:gap-2 items-end">
+                        <span className="bg-white/90 backdrop-blur-sm text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg font-medium text-gray-700 border border-white/50">
                           {image.type}
                         </span>
-                        <span className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs px-3 py-1 rounded-full shadow-lg font-medium">
+                        <span className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg font-medium">
                           {image.width && image.height ? calculateAspectRatio(image.width, image.height) : 'Unknown'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="font-bold text-gray-900 truncate text-lg mb-2" title={image.name}>
+                  <div className="p-2 sm:p-3 lg:p-4">
+                    <h3 className="font-bold text-gray-900 truncate text-sm sm:text-base lg:text-lg mb-1 sm:mb-2" title={image.name}>
                       {image.name}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-4 truncate" title={image.description}>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2 truncate" title={image.description}>
                       {image.description || 'No description'}
                     </p>
-                    <div className="mb-4 text-sm text-gray-500 space-y-1">
+                    <div className="mb-2 sm:mb-3 text-xs sm:text-sm text-gray-500">
                       <div className="flex justify-between items-center">
                         <span className="font-medium">{image.formattedSize}</span>
                         {image.width && image.height && (
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">{image.width}×{image.height}</span>
+                          <span className="text-xs bg-gray-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">{image.width}×{image.height}</span>
                         )}
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium">
-                          {image.width && image.height ? calculateAspectRatio(image.width, image.height) : 'Unknown'}
-                        </span>
-                        <span>Uploaded by: {image.uploadedBy}</span>
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {new Date(image.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                     {/* Action buttons at bottom */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-2 sm:gap-3">
                       {isSelectionMode ? (
                         <button
                           onClick={() => handleImageSelection(image)}
-                          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
                           title="Select this image"
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          Select Image
+                          <span className="hidden sm:inline">Select Image</span>
+                          <span className="sm:hidden">Select</span>
                         </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => copyToClipboard(image.s3Url, 'Original URL')}
-                            className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                            title="Copy original URL"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            Copy
-                          </button>
-                          <button
-                            onClick={() => openUrlModal(image)}
-                            className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                            title="Resize options"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                            </svg>
-                            Resize
-                          </button>
-                        </>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -869,7 +851,7 @@ export default function ImageRepoPage() {
                       Size
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Upload Date
+                      Aspect Ratio
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -914,7 +896,9 @@ export default function ImageRepoPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(image.createdAt).toLocaleDateString()}
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                          {image.width && image.height ? calculateAspectRatio(image.width, image.height) : 'Unknown'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         {isSelectionMode ? (
@@ -925,26 +909,12 @@ export default function ImageRepoPage() {
                             ✓ Select Image
                           </button>
                         ) : (
-                          <>
-                            <button
-                              onClick={() => copyToClipboard(image.s3Url, 'Original URL')}
-                              className="text-indigo-600 hover:text-indigo-900 mr-3"
-                            >
-                              Copy URL
-                            </button>
-                            <button
-                              onClick={() => openUrlModal(image)}
-                              className="text-green-600 hover:text-green-900 mr-3"
-                            >
-                              Resize
-                            </button>
-                            <button
-                              onClick={() => setSelectedImages([image.id])}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Select
-                            </button>
-                          </>
+                          <button
+                            onClick={() => setSelectedImages([image.id])}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Select
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -956,42 +926,42 @@ export default function ImageRepoPage() {
 
           {/* Stats */}
           {!isSelectionMode && stats && hasUploadAccess && (
-            <div className="mt-10 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mt-6 sm:mt-10 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 sm:p-6 lg:p-8">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 lg:mb-8">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">Repository Statistics</h3>
+                <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Repository Statistics</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="text-center bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-6 border border-indigo-200">
-                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                <div className="text-center bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-indigo-200">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-4">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <div className="text-4xl font-bold text-indigo-700 mb-2">{stats.totalImages}</div>
-                  <div className="text-sm font-medium text-indigo-600">Total Images</div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-indigo-700 mb-1 sm:mb-2">{stats.totalImages}</div>
+                  <div className="text-xs sm:text-sm font-medium text-indigo-600">Total Images</div>
                 </div>
-                <div className="text-center bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 border border-emerald-200">
-                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-emerald-200">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-4">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                   </div>
-                  <div className="text-4xl font-bold text-emerald-700 mb-2">{stats.formattedTotalSize}</div>
-                  <div className="text-sm font-medium text-emerald-600">Storage Used</div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-emerald-700 mb-1 sm:mb-2">{stats.formattedTotalSize}</div>
+                  <div className="text-xs sm:text-sm font-medium text-emerald-600">Storage Used</div>
                 </div>
-                <div className="text-center bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-purple-200">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-4">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <div className="text-4xl font-bold text-purple-700 mb-2">{selectedImages.length}</div>
-                  <div className="text-sm font-medium text-purple-600">Selected Images</div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-700 mb-1 sm:mb-2">{selectedImages.length}</div>
+                  <div className="text-xs sm:text-sm font-medium text-purple-600">Selected Images</div>
                 </div>
               </div>
             </div>

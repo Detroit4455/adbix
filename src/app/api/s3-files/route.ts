@@ -33,13 +33,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
     
-    // Check permissions - either admin/manager or the user themselves
+    // Check permissions - either admin/manager or the user themselves with file-manager access
     const userRole = session.user.role || 'user';
     const isAdmin = await checkResourceAccess('user-management', userRole);
     const isSelf = session.user.mobileNumber === userId;
+    const hasFileManagerAccess = await checkResourceAccess('file-manager', userRole);
     
-    if (!isAdmin && !isSelf) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    if (!isAdmin && (!isSelf || !hasFileManagerAccess)) {
+      return NextResponse.json({ error: 'Access denied. You need file manager permissions to access files.' }, { status: 403 });
     }
     
     // Construct the S3 prefix
@@ -120,6 +121,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'File and user ID are required' }, { status: 400 });
       }
 
+      // Check permissions - either admin/manager or the user themselves with file-manager access
+      const userRole = session.user.role || 'user';
+      const isAdmin = await checkResourceAccess('user-management', userRole);
+      const isSelf = session.user.mobileNumber === userId;
+      const hasFileManagerAccess = await checkResourceAccess('file-manager', userRole);
+      
+      if (!isAdmin && (!isSelf || !hasFileManagerAccess)) {
+        return NextResponse.json({ error: 'Access denied. You need file manager permissions to upload files.' }, { status: 403 });
+      }
+
       const fileBuffer = await file.arrayBuffer();
       const key = `sites/${userId}/${path ? path + '/' : ''}${file.name}`.replace(/\/+/g, '/');
 
@@ -139,6 +150,16 @@ export async function POST(request: Request) {
 
       if (!userId) {
         return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+      }
+
+      // Check permissions - either admin/manager or the user themselves with file-manager access
+      const userRole = session.user.role || 'user';
+      const isAdmin = await checkResourceAccess('user-management', userRole);
+      const isSelf = session.user.mobileNumber === userId;
+      const hasFileManagerAccess = await checkResourceAccess('file-manager', userRole);
+      
+      if (!isAdmin && (!isSelf || !hasFileManagerAccess)) {
+        return NextResponse.json({ error: 'Access denied. You need file manager permissions to create files/folders.' }, { status: 403 });
       }
 
       if (folderName) {
@@ -213,13 +234,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'File name and user ID are required' }, { status: 400 });
     }
 
-    // Check permissions - either admin/manager or the user themselves
+    // Check permissions - either admin/manager or the user themselves with file-manager access
     const userRole = session.user.role || 'user';
     const isAdmin = await checkResourceAccess('user-management', userRole);
     const isSelf = session.user.mobileNumber === userId;
+    const hasFileManagerAccess = await checkResourceAccess('file-manager', userRole);
     
-    if (!isAdmin && !isSelf) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    if (!isAdmin && (!isSelf || !hasFileManagerAccess)) {
+      return NextResponse.json({ error: 'Access denied. You need file manager permissions to manage files.' }, { status: 403 });
     }
 
     // If deleting a folder, recursively delete all objects under the prefix (with pagination and batching)

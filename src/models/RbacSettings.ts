@@ -156,6 +156,15 @@ rbacSettingsSchema.statics.initializeDefaultSettings = async function(): Promise
               user: false,
               manager: false
             }
+          },
+          {
+            resource: 'file-manager',
+            roles: {
+              admin: true,
+              devops: true,
+              user: false,
+              manager: false
+            }
           }
         ]
       });

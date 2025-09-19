@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { IRbacMatrix } from '@/models/RbacSettings';
 
 interface RbacMatrixManagerProps {
@@ -19,7 +20,19 @@ export default function RbacMatrixManager({ initialMatrix }: RbacMatrixManagerPr
   const roles = ['admin', 'devops', 'user', 'manager'];
 
   // Available resources - add more resources here as needed
-  const availableResources = ['website-manager', 'image-repo', 'my-images', 'upload-website'];
+  const availableResources = ['website-manager', 'image-repo', 'my-images', 'upload-website', 'file-manager'];
+  
+  // Resource descriptions for tooltips
+  const getResourceDescription = (resource: string): string => {
+    const descriptions: { [key: string]: string } = {
+      'website-manager': 'Controls access to website management features in the admin panel',
+      'image-repo': 'Controls access to the shared image repository where users can browse and use images',
+      'my-images': 'Controls access to personal image gallery where users can upload and manage their own images',
+      'upload-website': 'Controls ability to upload and deploy websites to S3 hosting',
+      'file-manager': 'Controls access to the File Manager tab in S3 Website Manager (/web_on_s3) where users can upload, edit, delete, and organize website files'
+    };
+    return descriptions[resource] || 'No description available';
+  };
   
   // Handle toggling a role's access to a resource
   const handleToggleAccess = (resourceName: string, roleName: string) => {
@@ -119,7 +132,16 @@ export default function RbacMatrixManager({ initialMatrix }: RbacMatrixManagerPr
                 return (
                   <tr key={resource}>
                     <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
-                      {resource.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      <div className="flex items-center space-x-2">
+                        <span>{resource.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                        <div className="relative group">
+                          <QuestionMarkCircleIcon className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap max-w-xs z-10">
+                            {getResourceDescription(resource)}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     {roles.map(role => (
                       <td key={`${resource}-${role}`} className="whitespace-nowrap px-3 py-4 text-center">
