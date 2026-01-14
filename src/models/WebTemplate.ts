@@ -27,8 +27,8 @@ const WebTemplateSchema = new Schema<IWebTemplate>({
   templateId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
+    // Note: index is created automatically by unique: true
   },
   name: {
     type: String,

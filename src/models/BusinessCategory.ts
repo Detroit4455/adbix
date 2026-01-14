@@ -38,7 +38,7 @@ const businessCategorySchema = new Schema<IBusinessCategory>({
 });
 
 // Add index for better query performance
-businessCategorySchema.index({ name: 1 });
+// Note: name index is created automatically by unique: true
 businessCategorySchema.index({ isActive: 1 });
 
 // Initialize with default categories if none exist

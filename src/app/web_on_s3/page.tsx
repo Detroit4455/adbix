@@ -55,6 +55,7 @@ export default function WebOnS3Page() {
   const [canAccessFileManager, setCanAccessFileManager] = useState(false);
   const [permissionLoading, setPermissionLoading] = useState(true);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isActualMobileDevice, setIsActualMobileDevice] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const [hasWebsiteFiles, setHasWebsiteFiles] = useState(false);
   const [checkingFiles, setCheckingFiles] = useState(true);
@@ -70,6 +71,25 @@ export default function WebOnS3Page() {
   const refreshPreview = () => {
     setPreviewRefreshKey(prev => prev + 1);
   };
+
+  // Detect if user is on a mobile device
+  useEffect(() => {
+    const checkMobileDevice = () => {
+      const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsActualMobileDevice(isMobile);
+      
+      // If on mobile device, default to mobile view
+      if (isMobile) {
+        setIsMobileView(true);
+      }
+    };
+
+    checkMobileDevice();
+    
+    // Listen for window resize to handle orientation changes
+    window.addEventListener('resize', checkMobileDevice);
+    return () => window.removeEventListener('resize', checkMobileDevice);
+  }, []);
 
 
 
@@ -357,59 +377,60 @@ export default function WebOnS3Page() {
                 <div className="space-y-6">
                   {mobileNumber && hasWebsiteFiles ? (
                     <div className="space-y-6">
-                      {/* Preview Controls - Mobile Responsive */}
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                      {/* Preview Controls - Enhanced Mobile Responsive */}
+                      <div className="flex flex-col space-y-4">
                         <div className="flex items-start space-x-3">
                           <DocumentDuplicateIcon className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 flex-shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Website Preview</h2>
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-1 sm:space-y-0">
-                              <p className="text-xs sm:text-sm text-gray-600">Live preview of your website <span className="text-xs text-gray-500 font-normal">(CDN bypass)</span></p>
-                            </div>
+                            <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                              Website Preview
+                              {isActualMobileDevice && (
+                                <span className="ml-2 text-sm font-normal text-indigo-600 sm:hidden">(Mobile View)</span>
+                              )}
+                            </h2>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1">Live preview of your website <span className="text-xs text-gray-500 font-normal">(CDN bypass)</span></p>
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                          {/* Mobile/Desktop Toggle - Desktop only visible on larger screens */}
-                          <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
+                        <div className="flex flex-col space-y-3 sm:space-y-2">
+                          {/* Mobile/Desktop Toggle - Hidden on mobile devices, visible on larger screens */}
+                          <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1 w-auto">
                             <button
                               onClick={() => setIsMobileView(false)}
-                              className={`flex-1 sm:flex-none px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                              className={`flex-none px-3 py-2 rounded-md text-sm font-medium transition-colors touch-manipulation ${
                                 !isMobileView
                                   ? 'bg-white text-indigo-600 shadow-sm'
                                   : 'text-gray-600 hover:text-gray-900'
                               }`}
                             >
-                              <ComputerDesktopIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 inline" />
+                              <ComputerDesktopIcon className="h-4 w-4 mr-2 inline" />
                               Desktop
                             </button>
                             <button
                               onClick={() => setIsMobileView(true)}
-                              className={`flex-1 sm:flex-none px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                              className={`flex-none px-3 py-2 rounded-md text-sm font-medium transition-colors touch-manipulation ${
                                 isMobileView
                                   ? 'bg-white text-indigo-600 shadow-sm'
                                   : 'text-gray-600 hover:text-gray-900'
                               }`}
                             >
-                              <DevicePhoneMobileIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 inline" />
+                              <DevicePhoneMobileIcon className="h-4 w-4 mr-2 inline" />
                               Mobile
                             </button>
                           </div>
                           
-                          <div className="flex space-x-2 sm:space-x-3">
-                            {/* Refresh Button */}
+                          <div className="flex justify-center sm:justify-start">
+                            {/* Refresh Button - Enhanced for mobile */}
                             <button
                               onClick={refreshPreview}
-                              className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm"
+                              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 sm:px-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium touch-manipulation"
                               title="Refresh preview from S3"
                             >
-                              <svg className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
+                              <span className="sm:hidden">Refresh Preview</span>
                               <span className="hidden sm:inline">Refresh</span>
-                              <span className="sm:hidden">Sync</span>
                             </button>
-
-
                           </div>
                         </div>
                       </div>
@@ -433,15 +454,21 @@ export default function WebOnS3Page() {
                                 </span>
                               </div>
                             </div>
+                            {/* Mobile view indicator for mobile devices */}
+                            {isActualMobileDevice && isMobileView && (
+                              <div className="sm:hidden">
+                                <DevicePhoneMobileIcon className="h-3 w-3 text-indigo-500" />
+                              </div>
+                            )}
                           </div>
                         </div>
                         
-                        {/* Preview Content - Mobile Responsive */}
-                        <div className="flex justify-center bg-gray-100 p-2 sm:p-4 lg:p-6" style={{ minHeight: isMobileView ? '400px' : '600px' }}>
+                        {/* Preview Content - Enhanced Mobile Responsive */}
+                        <div className="flex justify-center bg-gray-100 p-3 sm:p-4 lg:p-6" style={{ minHeight: isMobileView ? '450px' : '500px' }}>
                           <div 
                             className={`transition-all duration-300 ${
                               isMobileView 
-                                ? 'w-full max-w-[320px] sm:max-w-[375px] h-[500px] sm:h-[667px]' 
+                                ? 'w-full max-w-[280px] sm:max-w-[375px] h-[400px] sm:h-[667px]' 
                                 : 'w-full h-full max-w-5xl bg-white rounded-lg shadow-lg overflow-hidden'
                             }`}
                           >
@@ -487,14 +514,18 @@ export default function WebOnS3Page() {
                               </div>
                             )}
 
-                            {/* Desktop Frame - Mobile Responsive */}
+                            {/* Desktop Frame - Enhanced Mobile Responsive */}
                             {!isMobileView && (
-                              <div className="relative w-full h-[400px] sm:h-[600px]">
+                              <div className="relative w-full h-[350px] sm:h-[450px] lg:h-[600px]">
                                 <iframe
                                   src={getDirectS3Url(mobileNumber, 'index.html')}
-                                  className="w-full h-full border-0"
+                                  className="w-full h-full border-0 rounded-lg"
                                   title="Desktop Website Preview"
                                   loading="lazy"
+                                  style={{ 
+                                    background: 'white',
+                                    minHeight: '300px'
+                                  }}
                                 />
                               </div>
                             )}
@@ -505,20 +536,20 @@ export default function WebOnS3Page() {
 
                     </div>
                   ) : checkingFiles ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
-                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Checking Website Files...</h3>
-                      <p className="text-gray-600">Please wait while we check your website files.</p>
+                    <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-xl mx-2 sm:mx-0">
+                      <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
+                      <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2 px-4">Checking Website Files...</h3>
+                      <p className="text-sm sm:text-base text-gray-600 px-4">Please wait while we check your website files.</p>
                     </div>
                   ) : (
-                    <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200">
-                      <div className="text-6xl mb-6">🚀</div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Build Your Website?</h3>
-                      <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    <div className="text-center py-8 sm:py-12 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200 mx-2 sm:mx-0">
+                      <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">🚀</div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 px-4">Ready to Build Your Website?</h3>
+                      <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto px-4">
                         Get started quickly by importing a professional template or upload your own website files.
                       </p>
                       
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-sm mx-auto">
+                      <div className="flex flex-col gap-3 justify-center items-center max-w-sm mx-auto px-4">
                         <Link
                           href="/templates"
                           className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold w-full sm:w-auto"
@@ -544,8 +575,8 @@ export default function WebOnS3Page() {
                         )}
                       </div>
                       
-                      <div className="mt-6 p-4 bg-white rounded-lg border border-blue-200 max-w-md mx-auto">
-                        <p className="text-sm text-blue-700">
+                      <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-white rounded-lg border border-blue-200 max-w-md mx-auto">
+                        <p className="text-xs sm:text-sm text-blue-700 leading-relaxed">
                           <strong>💡 Tip:</strong> Templates are pre-built, professional websites that you can customize. 
                           They're perfect for getting started quickly!
                         </p>

@@ -14,6 +14,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "adbix",
   description: "Upload and host your static website",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   icons: {
     icon: [
       { url: '/favicon_io/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -38,6 +39,11 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/favicon_io/site.webmanifest" />
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2651064707147566"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>

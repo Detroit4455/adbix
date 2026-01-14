@@ -55,8 +55,8 @@ const subscriptionSchema = new Schema<ISubscription>({
     type: String,
     required: [true, 'Razorpay Subscription ID is required'],
     unique: true,
-    trim: true,
-    index: true
+    trim: true
+    // Note: index is created automatically by unique: true
   },
   razorpayPlanId: {
     type: String,
