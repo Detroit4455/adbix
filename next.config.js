@@ -51,10 +51,10 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://api.razorpay.com https://cdnjs.cloudflare.com https://cdn.tailwindcss.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3201 http://192.168.1.201:3000",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
+              "connect-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3201 http://192.168.1.201:3000",
               // Allow embedding our S3-hosted sites (and CloudFront if configured) in iframes
               `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL}`.trim(),
               // Allow Monaco Editor web workers
@@ -125,12 +125,12 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3201 http://192.168.1.201:3000",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://cdn.jsdelivr.net https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
+              "connect-src 'self' https://cdn.jsdelivr.net https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3201 http://192.168.1.201:3000",
               // Permit being embedded by our domain and common S3/CF domains
-              `frame-ancestors 'self' ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL} https://*.amazonaws.com https://*.cloudfront.net http://localhost:3000`.trim(),
+              `frame-ancestors 'self' ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL} https://*.amazonaws.com https://*.cloudfront.net http://localhost:3201`.trim(),
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'"
@@ -150,11 +150,11 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3201 http://192.168.1.201:3000",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://cdn.jsdelivr.net https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3000 http://192.168.1.201:3000",
-              `frame-ancestors 'self' ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL} https://*.amazonaws.com https://*.cloudfront.net http://localhost:3000`.trim(),
+              "connect-src 'self' https://cdn.jsdelivr.net https://dt-web-sites.s3.ap-south-1.amazonaws.com http://localhost:3201 http://192.168.1.201:3000",
+              `frame-ancestors 'self' ${S3_BASE_URL} ${CLOUDFRONT_BASE_URL} https://*.amazonaws.com https://*.cloudfront.net http://localhost:3201`.trim(),
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'"
